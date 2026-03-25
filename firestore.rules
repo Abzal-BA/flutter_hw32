@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function ownsResource() {
+      return isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    function incomingBelongsToUser() {
+      return isSignedIn() && request.resource.data.uid == request.auth.uid;
+    }
+
+    function validTaskFields() {
+      return request.resource.data.keys().hasOnly([
+        'uid',
+        'title',
+        'description',
+        'status',
+        'category',
+        'tags',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    // Task: Minimum security - users can only access their own documents by uid.
+    match /tasks/{taskId} {
+      allow read, delete: if ownsResource();
+      allow create: if incomingBelongsToUser() && validTaskFields();
+      allow update: if ownsResource() && incomingBelongsToUser() && validTaskFields();
+    }
+
+    // Optional alias collection if you later use "notes" naming.
+    match /notes/{noteId} {
+      allow read, delete: if ownsResource();
+      allow create: if incomingBelongsToUser() && validTaskFields();
+      allow update: if ownsResource() && incomingBelongsToUser() && validTaskFields();
+    }
+  }
+}
