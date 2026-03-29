@@ -26,11 +26,39 @@ service cloud.firestore {
       ]);
     }
 
+    function parentTaskOwnerUid(taskId) {
+      return get(/databases/$(database)/documents/tasks/$(taskId)).data.uid;
+    }
+
+    function canAccessTaskComments(taskId) {
+      return isSignedIn();
+    }
+
+    function validCommentFields() {
+      return request.resource.data.keys().hasOnly([
+        'taskId',
+        'uid',
+        'userName',
+        'text',
+        'createdAt'
+      ]);
+    }
+
     // Task: Minimum security - users can only access their own documents by uid.
     match /tasks/{taskId} {
       allow read, delete: if ownsResource();
       allow create: if incomingBelongsToUser() && validTaskFields();
       allow update: if ownsResource() && incomingBelongsToUser() && validTaskFields();
+
+      match /comments/{commentId} {
+        allow read: if canAccessTaskComments(taskId);
+        allow create: if canAccessTaskComments(taskId)
+          && request.resource.data.taskId == taskId
+          && incomingBelongsToUser()
+          && validCommentFields();
+        allow delete: if canAccessTaskComments(taskId)
+          && resource.data.uid == request.auth.uid;
+      }
     }
 
     // Optional alias collection if you later use "notes" naming.

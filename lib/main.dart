@@ -4,40 +4,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'auth/auth_controller.dart';
-import 'auth/auth_state.dart';
 import 'di/service_locator.dart';
+import 'features/auth/presentation/controller/auth_controller.dart';
+import 'features/auth/presentation/pages/auth_screen.dart';
+import 'features/auth/presentation/state/auth_state.dart';
+import 'features/notifications/notification_service.dart';
+import 'features/tasks/presentation/pages/task_page.dart';
 import 'firebase_options.dart';
-import 'notifications/notification_service.dart';
-import 'pages/auth_screen.dart';
-import 'pages/task_page.dart';
-
-const day35TaskImplementationMap = <String, List<String>>{
-  '1. MVC task screen': <String>[
-    'lib/pages/task_page.dart',
-    'lib/notes/notes_controller.dart',
-    'lib/notes/notes_repository.dart',
-  ],
-  '2. MVP task screen + comparison': <String>[
-    'lib/pages/task_page_mvp.dart',
-    'lib/notes/mvp/notes_presenter.dart',
-    'docs/day35_manual_test.md',
-  ],
-  '3. Business logic out of UI (load/add) + manual test': <String>[
-    'lib/notes/notes_controller.dart',
-    'lib/notes/mvp/notes_presenter.dart',
-    'docs/day35_manual_test.md',
-  ],
-  '4. Layer diagram + responsibilities': <String>[
-    'docs/day35_layers.md',
-  ],
-  '5. Unified error handling': <String>[
-    'lib/core/error_handler.dart',
-    'lib/notes/notes_controller.dart',
-    'lib/notes/mvp/notes_presenter.dart',
-    'lib/auth/auth_controller.dart',
-  ],
-};
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
