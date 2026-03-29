@@ -2,18 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../di/service_locator.dart';
-import '../../../auth/presentation/controller/auth_controller.dart';
 import '../../../notifications/notification_service.dart';
 import '../../../notifications/presentation/pages/notification_settings_screen.dart';
+import '../../../auth/presentation/viewmodel/auth_view_model.dart';
 import '../../domain/entities/task.dart';
-import '../../domain/usecases/add_task_usecase.dart';
-import '../../domain/usecases/delete_task_usecase.dart';
-import '../../domain/usecases/update_task_usecase.dart';
-import '../../domain/usecases/watch_tasks_usecase.dart';
-import '../../../auth/domain/repositories/i_auth_repository.dart';
-import '../../../../core/error/app_error_handler.dart';
-import '../controller/tasks_controller.dart';
 import '../state/tasks_state.dart';
+import '../viewmodel/tasks_view_model.dart';
 import 'task_details_screen.dart';
 import '../../../auth/presentation/pages/user_settings_page.dart';
 
@@ -26,55 +20,45 @@ class TaskPage extends StatefulWidget {
 
 class _TaskPageState extends State<TaskPage> {
   final _searchTagController = TextEditingController();
-  late final TasksController _tasksController;
-  final NotificationService _notificationService =
-      getIt<NotificationService>();
+  late final TasksViewModel _viewModel;
+  final NotificationService _notificationService = getIt<NotificationService>();
 
   Future<void> _signOut() async {
     Navigator.of(context).pop();
-    await context.read<AuthController>().signOut();
+    await context.read<AuthViewModel>().signOut();
   }
 
   Future<void> _openNotificationSettings() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-          builder: (_) => const NotificationSettingsScreen()),
+      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
     );
   }
 
   Future<void> _openUserSettings() async {
     Navigator.of(context).pop();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const UserSettingsPage()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const UserSettingsPage()));
   }
 
   @override
   void initState() {
     super.initState();
-    _tasksController = TasksController(
-      watchTasksUseCase: getIt<WatchTasksUseCase>(),
-      addTaskUseCase: getIt<AddTaskUseCase>(),
-      updateTaskUseCase: getIt<UpdateTaskUseCase>(),
-      deleteTaskUseCase: getIt<DeleteTaskUseCase>(),
-      authRepository: getIt<IAuthRepository>(),
-      errorHandler: getIt<AppErrorHandler>(),
-    );
-    _tasksController.loadTasks();
+    _viewModel = getIt<TasksViewModel>();
+    _viewModel.loadTasks();
   }
 
   @override
   void dispose() {
     _searchTagController.dispose();
-    _tasksController.dispose();
+    _viewModel.dispose();
     super.dispose();
   }
 
   Future<void> _openCreateTaskDialog() async {
     final created = await showDialog<bool>(
       context: context,
-      builder: (context) =>
-          _TaskEditorDialog(tasksController: _tasksController),
+      builder: (context) => _TaskEditorDialog(viewModel: _viewModel),
     );
 
     if (created == true && mounted) {
@@ -87,8 +71,8 @@ class _TaskPageState extends State<TaskPage> {
   Future<void> _openEditTaskDialog(Task task) async {
     final updated = await showDialog<bool>(
       context: context,
-      builder: (context) => _TaskEditorDialog(
-          task: task, tasksController: _tasksController),
+      builder: (context) =>
+          _TaskEditorDialog(task: task, viewModel: _viewModel),
     );
 
     if (updated == true && mounted) {
@@ -118,7 +102,7 @@ class _TaskPageState extends State<TaskPage> {
     );
 
     if (confirmed == true) {
-      await _tasksController.deleteTask(task.id);
+      await _viewModel.deleteTask(task.id);
     }
   }
 
@@ -138,10 +122,7 @@ class _TaskPageState extends State<TaskPage> {
         child: SafeArea(
           child: Column(
             children: [
-              const ListTile(
-                leading: Icon(Icons.menu),
-                title: Text('Menu'),
-              ),
+              const ListTile(leading: Icon(Icons.menu), title: Text('Menu')),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.person_outline),
@@ -188,9 +169,9 @@ class _TaskPageState extends State<TaskPage> {
         ],
       ),
       body: AnimatedBuilder(
-        animation: _tasksController,
+        animation: _viewModel,
         builder: (context, _) {
-          final tasksState = _tasksController.state;
+          final tasksState = _viewModel.state;
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -205,12 +186,12 @@ class _TaskPageState extends State<TaskPage> {
                     hintText: 'example: flutter',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      onPressed: () => _tasksController
-                          .setSearchTag(_searchTagController.text),
+                      onPressed: () =>
+                          _viewModel.setSearchTag(_searchTagController.text),
                       icon: const Icon(Icons.search),
                     ),
                   ),
-                  onSubmitted: _tasksController.setSearchTag,
+                  onSubmitted: _viewModel.setSearchTag,
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -225,18 +206,19 @@ class _TaskPageState extends State<TaskPage> {
                         ),
                         items: const [
                           DropdownMenuItem(
-                              value: 'all', child: Text('All statuses')),
+                            value: 'all',
+                            child: Text('All statuses'),
+                          ),
+                          DropdownMenuItem(value: 'todo', child: Text('To do')),
                           DropdownMenuItem(
-                              value: 'todo', child: Text('To do')),
-                          DropdownMenuItem(
-                              value: 'in_progress',
-                              child: Text('In progress')),
-                          DropdownMenuItem(
-                              value: 'done', child: Text('Done')),
+                            value: 'in_progress',
+                            child: Text('In progress'),
+                          ),
+                          DropdownMenuItem(value: 'done', child: Text('Done')),
                         ],
                         onChanged: (value) {
                           if (value != null) {
-                            _tasksController.setStatusFilter(value);
+                            _viewModel.setStatusFilter(value);
                           }
                         },
                       ),
@@ -252,21 +234,26 @@ class _TaskPageState extends State<TaskPage> {
                         ),
                         items: const [
                           DropdownMenuItem(
-                              value: 'all',
-                              child: Text('All categories')),
+                            value: 'all',
+                            child: Text('All categories'),
+                          ),
                           DropdownMenuItem(
-                              value: 'general', child: Text('General')),
+                            value: 'general',
+                            child: Text('General'),
+                          ),
                           DropdownMenuItem(
-                              value: 'study', child: Text('Study')),
+                            value: 'study',
+                            child: Text('Study'),
+                          ),
+                          DropdownMenuItem(value: 'work', child: Text('Work')),
                           DropdownMenuItem(
-                              value: 'work', child: Text('Work')),
-                          DropdownMenuItem(
-                              value: 'personal',
-                              child: Text('Personal')),
+                            value: 'personal',
+                            child: Text('Personal'),
+                          ),
                         ],
                         onChanged: (value) {
                           if (value != null) {
-                            _tasksController.setCategoryFilter(value);
+                            _viewModel.setCategoryFilter(value);
                           }
                         },
                       ),
@@ -278,7 +265,7 @@ class _TaskPageState extends State<TaskPage> {
                   child: TextButton(
                     onPressed: () {
                       _searchTagController.clear();
-                      _tasksController.clearFilters();
+                      _viewModel.clearFilters();
                     },
                     child: const Text('Clear filters'),
                   ),
@@ -315,7 +302,7 @@ class _TaskPageState extends State<TaskPage> {
             ),
             const SizedBox(height: 10),
             FilledButton(
-              onPressed: _tasksController.loadTasks,
+              onPressed: _viewModel.loadTasks,
               child: const Text('Retry'),
             ),
           ],
@@ -324,14 +311,11 @@ class _TaskPageState extends State<TaskPage> {
     }
 
     if (tasksState.items.isEmpty) {
-      return const Center(
-        child: Text('No tasks yet. Add your first task.'),
-      );
+      return const Center(child: Text('No tasks yet. Add your first task.'));
     }
 
     return ListView.builder(
-      itemCount:
-          tasksState.items.length + (tasksState.hasMore ? 1 : 0),
+      itemCount: tasksState.items.length + (tasksState.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == tasksState.items.length) {
           return Padding(
@@ -340,7 +324,7 @@ class _TaskPageState extends State<TaskPage> {
               child: tasksState.isLoadingMore
                   ? const CircularProgressIndicator()
                   : OutlinedButton(
-                      onPressed: _tasksController.loadMore,
+                      onPressed: _viewModel.loadMore,
                       child: const Text('Load 10 more'),
                     ),
             ),
@@ -353,8 +337,7 @@ class _TaskPageState extends State<TaskPage> {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      TaskDetailsScreen(taskId: task.id),
+                  builder: (_) => TaskDetailsScreen(taskId: task.id),
                 ),
               );
             },
@@ -373,12 +356,8 @@ class _TaskPageState extends State<TaskPage> {
                   runSpacing: 6,
                   children: [
                     Chip(label: Text('Status: ${task.status}')),
-                    Chip(
-                        label:
-                            Text('Category: ${task.category}')),
-                    ...task.tags.map(
-                      (tag) => Chip(label: Text('#$tag')),
-                    ),
+                    Chip(label: Text('Category: ${task.category}')),
+                    ...task.tags.map((tag) => Chip(label: Text('#$tag'))),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -408,11 +387,10 @@ class _TaskPageState extends State<TaskPage> {
 }
 
 class _TaskEditorDialog extends StatefulWidget {
-  const _TaskEditorDialog(
-      {required this.tasksController, this.task});
+  const _TaskEditorDialog({required this.viewModel, this.task});
 
   final Task? task;
-  final TasksController tasksController;
+  final TasksViewModel viewModel;
 
   @override
   State<_TaskEditorDialog> createState() => _TaskEditorDialogState();
@@ -444,12 +422,11 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
   void initState() {
     super.initState();
     final task = widget.task;
-    _titleController =
-        TextEditingController(text: task?.title ?? '');
-    _descriptionController =
-        TextEditingController(text: task?.description ?? '');
-    _tagsController =
-        TextEditingController(text: task?.tags.join(', ') ?? '');
+    _titleController = TextEditingController(text: task?.title ?? '');
+    _descriptionController = TextEditingController(
+      text: task?.description ?? '',
+    );
+    _tagsController = TextEditingController(text: task?.tags.join(', ') ?? '');
     _status = task?.status ?? 'todo';
     _category = task?.category ?? 'general';
   }
@@ -470,12 +447,12 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
       _submitting = true;
     });
 
-    final controller = widget.tasksController;
+    final viewModel = widget.viewModel;
     final currentTask = widget.task;
     bool success;
 
     if (currentTask == null) {
-      success = await controller.addTask(
+      success = await viewModel.addTask(
         title: _titleController.text,
         description: _descriptionController.text,
         status: _status,
@@ -483,7 +460,7 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
         tagsRaw: _tagsController.text,
       );
     } else {
-      success = await controller.updateTask(
+      success = await viewModel.updateTask(
         taskId: currentTask.id,
         title: _titleController.text,
         description: _descriptionController.text,
@@ -543,8 +520,8 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
                 ),
                 items: _statusOptions
                     .map(
-                      (status) => DropdownMenuItem(
-                          value: status, child: Text(status)),
+                      (status) =>
+                          DropdownMenuItem(value: status, child: Text(status)),
                     )
                     .toList(),
                 onChanged: (value) {
@@ -565,7 +542,9 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
                 items: _categoryOptions
                     .map(
                       (category) => DropdownMenuItem(
-                          value: category, child: Text(category)),
+                        value: category,
+                        child: Text(category),
+                      ),
                     )
                     .toList(),
                 onChanged: (value) {

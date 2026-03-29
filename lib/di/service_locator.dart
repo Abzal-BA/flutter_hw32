@@ -16,13 +16,14 @@ import '../features/auth/domain/usecases/sign_in_with_email_usecase.dart';
 import '../features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import '../features/auth/domain/usecases/sign_out_usecase.dart';
 import '../features/auth/domain/usecases/update_display_name_usecase.dart';
-import '../features/auth/presentation/controller/auth_controller.dart';
+import '../features/auth/presentation/viewmodel/auth_view_model.dart';
 import '../features/comments/data/datasources/comment_remote_datasource.dart';
 import '../features/comments/data/repositories/comment_repository_impl.dart';
 import '../features/comments/domain/repositories/i_comment_repository.dart';
 import '../features/comments/domain/usecases/add_comment_usecase.dart';
 import '../features/comments/domain/usecases/delete_comment_usecase.dart';
 import '../features/comments/domain/usecases/watch_comments_usecase.dart';
+import '../features/comments/presentation/viewmodel/comments_view_model.dart';
 import '../features/notifications/notification_service.dart';
 import '../features/notifications/notification_settings_store.dart';
 import '../features/tasks/data/datasources/task_remote_datasource.dart';
@@ -33,6 +34,8 @@ import '../features/tasks/domain/usecases/delete_task_usecase.dart';
 import '../features/tasks/domain/usecases/update_task_usecase.dart';
 import '../features/tasks/domain/usecases/watch_task_usecase.dart';
 import '../features/tasks/domain/usecases/watch_tasks_usecase.dart';
+import '../features/tasks/presentation/viewmodel/task_details_view_model.dart';
+import '../features/tasks/presentation/viewmodel/tasks_view_model.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -43,18 +46,21 @@ Future<void> setupDependencies() async {
   }
   if (!getIt.isRegistered<FirebaseFirestore>()) {
     getIt.registerLazySingleton<FirebaseFirestore>(
-        () => FirebaseFirestore.instance);
+      () => FirebaseFirestore.instance,
+    );
   }
   if (!getIt.isRegistered<GoogleSignIn>()) {
     getIt.registerLazySingleton<GoogleSignIn>(GoogleSignIn.new);
   }
   if (!getIt.isRegistered<FirebaseMessaging>()) {
     getIt.registerLazySingleton<FirebaseMessaging>(
-        () => FirebaseMessaging.instance);
+      () => FirebaseMessaging.instance,
+    );
   }
   if (!getIt.isRegistered<FlutterLocalNotificationsPlugin>()) {
     getIt.registerLazySingleton<FlutterLocalNotificationsPlugin>(
-        FlutterLocalNotificationsPlugin.new);
+      FlutterLocalNotificationsPlugin.new,
+    );
   }
   if (!getIt.isRegistered<SharedPreferences>()) {
     final preferences = await SharedPreferences.getInstance();
@@ -64,7 +70,8 @@ Future<void> setupDependencies() async {
   // ── Notifications ─────────────────────────────────────────────────────────
   if (!getIt.isRegistered<NotificationSettingsStore>()) {
     getIt.registerLazySingleton<NotificationSettingsStore>(
-        () => NotificationSettingsStore(getIt<SharedPreferences>()));
+      () => NotificationSettingsStore(getIt<SharedPreferences>()),
+    );
   }
   if (!getIt.isRegistered<NotificationService>()) {
     getIt.registerLazySingleton<NotificationService>(
@@ -94,35 +101,42 @@ Future<void> setupDependencies() async {
   }
   if (!getIt.isRegistered<IAuthRepository>()) {
     getIt.registerLazySingleton<IAuthRepository>(
-        () => AuthRepositoryImpl(getIt<AuthRemoteDataSource>()));
+      () => AuthRepositoryImpl(getIt<AuthRemoteDataSource>()),
+    );
   }
   if (!getIt.isRegistered<SignInWithEmailUseCase>()) {
     getIt.registerLazySingleton<SignInWithEmailUseCase>(
-        () => SignInWithEmailUseCase(getIt<IAuthRepository>()));
+      () => SignInWithEmailUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<RegisterWithEmailUseCase>()) {
     getIt.registerLazySingleton<RegisterWithEmailUseCase>(
-        () => RegisterWithEmailUseCase(getIt<IAuthRepository>()));
+      () => RegisterWithEmailUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<SignOutUseCase>()) {
     getIt.registerLazySingleton<SignOutUseCase>(
-        () => SignOutUseCase(getIt<IAuthRepository>()));
+      () => SignOutUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<SendPasswordResetUseCase>()) {
     getIt.registerLazySingleton<SendPasswordResetUseCase>(
-        () => SendPasswordResetUseCase(getIt<IAuthRepository>()));
+      () => SendPasswordResetUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<SignInWithGoogleUseCase>()) {
     getIt.registerLazySingleton<SignInWithGoogleUseCase>(
-        () => SignInWithGoogleUseCase(getIt<IAuthRepository>()));
+      () => SignInWithGoogleUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<UpdateDisplayNameUseCase>()) {
     getIt.registerLazySingleton<UpdateDisplayNameUseCase>(
-        () => UpdateDisplayNameUseCase(getIt<IAuthRepository>()));
+      () => UpdateDisplayNameUseCase(getIt<IAuthRepository>()),
+    );
   }
-  if (!getIt.isRegistered<AuthController>()) {
-    getIt.registerFactory<AuthController>(
-      () => AuthController(
+  if (!getIt.isRegistered<AuthViewModel>()) {
+    getIt.registerFactory<AuthViewModel>(
+      () => AuthViewModel(
         authRepository: getIt<IAuthRepository>(),
         signInWithEmailUseCase: getIt<SignInWithEmailUseCase>(),
         registerWithEmailUseCase: getIt<RegisterWithEmailUseCase>(),
@@ -138,52 +152,97 @@ Future<void> setupDependencies() async {
   // ── Tasks feature ─────────────────────────────────────────────────────────
   if (!getIt.isRegistered<TaskRemoteDataSource>()) {
     getIt.registerLazySingleton<TaskRemoteDataSource>(
-        () => TaskRemoteDataSource(getIt<FirebaseFirestore>()));
+      () => TaskRemoteDataSource(getIt<FirebaseFirestore>()),
+    );
   }
   if (!getIt.isRegistered<ITaskRepository>()) {
     getIt.registerLazySingleton<ITaskRepository>(
-        () => TaskRepositoryImpl(getIt<TaskRemoteDataSource>()));
+      () => TaskRepositoryImpl(getIt<TaskRemoteDataSource>()),
+    );
   }
   if (!getIt.isRegistered<WatchTasksUseCase>()) {
     getIt.registerLazySingleton<WatchTasksUseCase>(
-        () => WatchTasksUseCase(getIt<ITaskRepository>()));
+      () => WatchTasksUseCase(getIt<ITaskRepository>()),
+    );
   }
   if (!getIt.isRegistered<WatchTaskUseCase>()) {
     getIt.registerLazySingleton<WatchTaskUseCase>(
-        () => WatchTaskUseCase(getIt<ITaskRepository>()));
+      () => WatchTaskUseCase(getIt<ITaskRepository>()),
+    );
   }
   if (!getIt.isRegistered<AddTaskUseCase>()) {
     getIt.registerLazySingleton<AddTaskUseCase>(
-        () => AddTaskUseCase(getIt<ITaskRepository>()));
+      () => AddTaskUseCase(getIt<ITaskRepository>()),
+    );
   }
   if (!getIt.isRegistered<UpdateTaskUseCase>()) {
     getIt.registerLazySingleton<UpdateTaskUseCase>(
-        () => UpdateTaskUseCase(getIt<ITaskRepository>()));
+      () => UpdateTaskUseCase(getIt<ITaskRepository>()),
+    );
   }
   if (!getIt.isRegistered<DeleteTaskUseCase>()) {
     getIt.registerLazySingleton<DeleteTaskUseCase>(
-        () => DeleteTaskUseCase(getIt<ITaskRepository>()));
+      () => DeleteTaskUseCase(getIt<ITaskRepository>()),
+    );
+  }
+  if (!getIt.isRegistered<TasksViewModel>()) {
+    getIt.registerFactory<TasksViewModel>(
+      () => TasksViewModel(
+        watchTasksUseCase: getIt<WatchTasksUseCase>(),
+        addTaskUseCase: getIt<AddTaskUseCase>(),
+        updateTaskUseCase: getIt<UpdateTaskUseCase>(),
+        deleteTaskUseCase: getIt<DeleteTaskUseCase>(),
+        authRepository: getIt<IAuthRepository>(),
+        errorHandler: getIt<AppErrorHandler>(),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<TaskDetailsViewModel>()) {
+    getIt.registerFactoryParam<TaskDetailsViewModel, String, void>(
+      (taskId, _) => TaskDetailsViewModel(
+        taskId: taskId,
+        watchTaskUseCase: getIt<WatchTaskUseCase>(),
+        errorHandler: getIt<AppErrorHandler>(),
+      ),
+    );
   }
 
   // ── Comments feature ──────────────────────────────────────────────────────
   if (!getIt.isRegistered<CommentRemoteDataSource>()) {
     getIt.registerLazySingleton<CommentRemoteDataSource>(
-        () => CommentRemoteDataSource(getIt<FirebaseFirestore>()));
+      () => CommentRemoteDataSource(getIt<FirebaseFirestore>()),
+    );
   }
   if (!getIt.isRegistered<ICommentRepository>()) {
     getIt.registerLazySingleton<ICommentRepository>(
-        () => CommentRepositoryImpl(getIt<CommentRemoteDataSource>()));
+      () => CommentRepositoryImpl(getIt<CommentRemoteDataSource>()),
+    );
   }
   if (!getIt.isRegistered<WatchCommentsUseCase>()) {
     getIt.registerLazySingleton<WatchCommentsUseCase>(
-        () => WatchCommentsUseCase(getIt<ICommentRepository>()));
+      () => WatchCommentsUseCase(getIt<ICommentRepository>()),
+    );
   }
   if (!getIt.isRegistered<AddCommentUseCase>()) {
     getIt.registerLazySingleton<AddCommentUseCase>(
-        () => AddCommentUseCase(getIt<ICommentRepository>()));
+      () => AddCommentUseCase(getIt<ICommentRepository>()),
+    );
   }
   if (!getIt.isRegistered<DeleteCommentUseCase>()) {
     getIt.registerLazySingleton<DeleteCommentUseCase>(
-        () => DeleteCommentUseCase(getIt<ICommentRepository>()));
+      () => DeleteCommentUseCase(getIt<ICommentRepository>()),
+    );
+  }
+  if (!getIt.isRegistered<CommentsViewModel>()) {
+    getIt.registerFactoryParam<CommentsViewModel, String, void>(
+      (taskId, _) => CommentsViewModel(
+        taskId: taskId,
+        watchCommentsUseCase: getIt<WatchCommentsUseCase>(),
+        addCommentUseCase: getIt<AddCommentUseCase>(),
+        deleteCommentUseCase: getIt<DeleteCommentUseCase>(),
+        authRepository: getIt<IAuthRepository>(),
+        errorHandler: getIt<AppErrorHandler>(),
+      ),
+    );
   }
 }

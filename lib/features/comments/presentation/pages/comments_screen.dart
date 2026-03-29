@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../di/service_locator.dart';
-import '../../../auth/domain/repositories/i_auth_repository.dart';
-import '../../../../core/error/app_error_handler.dart';
-import '../../domain/usecases/add_comment_usecase.dart';
-import '../../domain/usecases/delete_comment_usecase.dart';
-import '../../domain/usecases/watch_comments_usecase.dart';
-import '../controller/comments_controller.dart';
+import '../viewmodel/comments_view_model.dart';
 
 class CommentsScreen extends StatefulWidget {
   const CommentsScreen({required this.taskId, super.key});
@@ -18,36 +13,25 @@ class CommentsScreen extends StatefulWidget {
 }
 
 class _CommentsScreenState extends State<CommentsScreen> {
-  late final CommentsController _commentsController;
+  late final CommentsViewModel _viewModel;
   final _textController = TextEditingController();
-  bool _isPosting = false;
 
   @override
   void initState() {
     super.initState();
-    _commentsController = CommentsController(
-      taskId: widget.taskId,
-      watchCommentsUseCase: getIt<WatchCommentsUseCase>(),
-      addCommentUseCase: getIt<AddCommentUseCase>(),
-      deleteCommentUseCase: getIt<DeleteCommentUseCase>(),
-      authRepository: getIt<IAuthRepository>(),
-      errorHandler: getIt<AppErrorHandler>(),
-    );
+    _viewModel = getIt<CommentsViewModel>(param1: widget.taskId);
   }
 
   @override
   void dispose() {
     _textController.dispose();
-    _commentsController.dispose();
+    _viewModel.dispose();
     super.dispose();
   }
 
   Future<void> _submitComment() async {
-    setState(() => _isPosting = true);
-    final success =
-        await _commentsController.addComment(_textController.text);
+    final success = await _viewModel.addComment(_textController.text);
     if (!mounted) return;
-    setState(() => _isPosting = false);
     if (success) {
       _textController.clear();
     }
@@ -64,9 +48,9 @@ class _CommentsScreenState extends State<CommentsScreen> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _commentsController,
+      animation: _viewModel,
       builder: (context, _) {
-        final state = _commentsController.state;
+        final state = _viewModel.state;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,8 +71,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                   ),
                   child: Text(
                     state.errorMessage!,
-                    style: TextStyle(
-                        color: Colors.red.shade700, fontSize: 12),
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 12),
                   ),
                 ),
               ),
@@ -107,13 +90,12 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _isPosting ? null : _submitComment,
-                  icon: _isPosting
+                  onPressed: state.isPosting ? null : _submitComment,
+                  icon: state.isPosting
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.send),
                   tooltip: 'Send comment',
@@ -144,25 +126,20 @@ class _CommentsScreenState extends State<CommentsScreen> {
                       child: ListTile(
                         title: Text(comment.userName),
                         subtitle: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 4),
                             Text(comment.text),
                             const SizedBox(height: 4),
                             Text(
                               _formatDate(comment.createdAt),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall,
+                              style: Theme.of(context).textTheme.labelSmall,
                             ),
                           ],
                         ),
                         trailing: IconButton(
-                          onPressed: () => _commentsController
-                              .deleteComment(comment.id),
-                          icon:
-                              const Icon(Icons.delete_outline),
+                          onPressed: () => _viewModel.deleteComment(comment.id),
+                          icon: const Icon(Icons.delete_outline),
                           tooltip: 'Delete comment',
                         ),
                       ),

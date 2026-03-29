@@ -13,8 +13,8 @@ import '../../domain/usecases/sign_out_usecase.dart';
 import '../../domain/usecases/update_display_name_usecase.dart';
 import '../state/auth_state.dart';
 
-class AuthController extends ChangeNotifier {
-  AuthController({
+class AuthViewModel extends ChangeNotifier {
+  AuthViewModel({
     required IAuthRepository authRepository,
     required SignInWithEmailUseCase signInWithEmailUseCase,
     required RegisterWithEmailUseCase registerWithEmailUseCase,
@@ -37,9 +37,6 @@ class AuthController extends ChangeNotifier {
           isBusy: false,
           isLoginMode: true,
         ) {
-    _stateController = StreamController<AuthState>.broadcast(
-      onListen: () => _stateController.add(_state),
-    );
     _authSubscription =
         _authRepository.authStateChanges.listen(_handleAuthChanged);
   }
@@ -53,18 +50,13 @@ class AuthController extends ChangeNotifier {
   final UpdateDisplayNameUseCase _updateDisplayNameUseCase;
   final AppErrorHandler _errorHandler;
 
-  late final StreamController<AuthState> _stateController;
   StreamSubscription<AuthUser?>? _authSubscription;
   AuthState _state;
 
   AuthState get state => _state;
-  Stream<AuthState> get stream => _stateController.stream;
 
   void _emit(AuthState value) {
     _state = value;
-    if (!_stateController.isClosed) {
-      _stateController.add(_state);
-    }
     notifyListeners();
   }
 
@@ -85,6 +77,11 @@ class AuthController extends ChangeNotifier {
     ));
   }
 
+  void clearInfoMessage() {
+    if (state.infoMessage == null) return;
+    _emit(state.copyWith(clearInfo: true));
+  }
+
   Future<void> submitWithEmailAndPassword({
     required String email,
     required String password,
@@ -94,8 +91,9 @@ class AuthController extends ChangeNotifier {
 
     try {
       if (state.isLoginMode) {
-        await _signInWithEmailUseCase
-            .call(SignInWithEmailParams(email: email, password: password));
+        await _signInWithEmailUseCase.call(
+          SignInWithEmailParams(email: email, password: password),
+        );
       } else {
         await _registerWithEmailUseCase.call(
           RegisterWithEmailParams(
@@ -202,7 +200,6 @@ class AuthController extends ChangeNotifier {
   @override
   void dispose() {
     unawaited(_authSubscription?.cancel());
-    unawaited(_stateController.close());
     super.dispose();
   }
 }

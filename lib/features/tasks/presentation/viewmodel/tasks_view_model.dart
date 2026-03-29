@@ -11,8 +11,8 @@ import '../../domain/usecases/update_task_usecase.dart';
 import '../../domain/usecases/watch_tasks_usecase.dart';
 import '../state/tasks_state.dart';
 
-class TasksController extends ChangeNotifier {
-  TasksController({
+class TasksViewModel extends ChangeNotifier {
+  TasksViewModel({
     required WatchTasksUseCase watchTasksUseCase,
     required AddTaskUseCase addTaskUseCase,
     required UpdateTaskUseCase updateTaskUseCase,

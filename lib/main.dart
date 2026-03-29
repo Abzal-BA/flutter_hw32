@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'di/service_locator.dart';
-import 'features/auth/presentation/controller/auth_controller.dart';
 import 'features/auth/presentation/pages/auth_screen.dart';
-import 'features/auth/presentation/state/auth_state.dart';
+import 'features/auth/presentation/viewmodel/auth_view_model.dart';
 import 'features/notifications/notification_service.dart';
 import 'features/tasks/presentation/pages/task_page.dart';
 import 'firebase_options.dart';
@@ -19,8 +18,8 @@ Future<void> main() async {
   await setupDependencies();
 
   runApp(
-    ChangeNotifierProvider<AuthController>(
-      create: (_) => getIt<AuthController>(),
+    ChangeNotifierProvider<AuthViewModel>(
+      create: (_) => getIt<AuthViewModel>(),
       child: const MainApp(),
     ),
   );
@@ -73,25 +72,16 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authController = context.read<AuthController>();
+    final state = context.watch<AuthViewModel>().state;
 
-    return StreamBuilder<AuthState>(
-      stream: authController.stream,
-      initialData: authController.state,
-      builder: (context, snapshot) {
-        final state = snapshot.data ?? const AuthState();
-        if (!state.isAuthReady) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    if (!state.isAuthReady) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
-        if (state.isAuthenticated) {
-          return const TaskPage();
-        }
+    if (state.isAuthenticated) {
+      return const TaskPage();
+    }
 
-        return const AuthScreen();
-      },
-    );
+    return const AuthScreen();
   }
 }

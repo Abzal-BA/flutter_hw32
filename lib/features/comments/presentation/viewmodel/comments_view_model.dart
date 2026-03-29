@@ -10,8 +10,8 @@ import '../../domain/usecases/delete_comment_usecase.dart';
 import '../../domain/usecases/watch_comments_usecase.dart';
 import '../state/comments_state.dart';
 
-class CommentsController extends ChangeNotifier {
-  CommentsController({
+class CommentsViewModel extends ChangeNotifier {
+  CommentsViewModel({
     required String taskId,
     required WatchCommentsUseCase watchCommentsUseCase,
     required AddCommentUseCase addCommentUseCase,
@@ -75,6 +75,9 @@ class CommentsController extends ChangeNotifier {
       return false;
     }
 
+    _state = _state.copyWith(isPosting: true, clearError: true);
+    notifyListeners();
+
     try {
       await _addCommentUseCase.call(AddCommentParams(
         taskId: _taskId,
@@ -82,11 +85,12 @@ class CommentsController extends ChangeNotifier {
         userName: user.displayName ?? user.email ?? 'Anonymous',
         text: trimmed,
       ));
-      _state = _state.copyWith(clearError: true);
+      _state = _state.copyWith(isPosting: false, clearError: true);
       notifyListeners();
       return true;
     } catch (error) {
       _state = _state.copyWith(
+        isPosting: false,
         errorMessage:
             'Failed to add comment: ${_errorHandler.toMessage(error)}',
       );
@@ -110,8 +114,6 @@ class CommentsController extends ChangeNotifier {
     }
     notifyListeners();
   }
-
-  String get currentUserId => _authRepository.currentUser?.uid ?? '';
 
   @override
   void dispose() {

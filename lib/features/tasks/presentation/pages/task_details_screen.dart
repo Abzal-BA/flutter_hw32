@@ -2,13 +2,31 @@ import 'package:flutter/material.dart';
 
 import '../../../../di/service_locator.dart';
 import '../../../comments/presentation/pages/comments_screen.dart';
-import '../../domain/entities/task.dart';
-import '../../domain/usecases/watch_task_usecase.dart';
+import '../viewmodel/task_details_view_model.dart';
 
-class TaskDetailsScreen extends StatelessWidget {
+class TaskDetailsScreen extends StatefulWidget {
   const TaskDetailsScreen({required this.taskId, super.key});
 
   final String taskId;
+
+  @override
+  State<TaskDetailsScreen> createState() => _TaskDetailsScreenState();
+}
+
+class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
+  late final TaskDetailsViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = getIt<TaskDetailsViewModel>(param1: widget.taskId);
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   String _formatDate(DateTime? value) {
     if (value == null) return '-';
@@ -21,21 +39,20 @@ class TaskDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Task?>(
-      stream: getIt<WatchTaskUseCase>().call(taskId),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
+    return AnimatedBuilder(
+      animation: _viewModel,
+      builder: (context, _) {
+        if (_viewModel.errorMessage != null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Task Details')),
-            body: Center(
-                child: Text('Failed to load task: ${snapshot.error}')),
+            body: Center(child: Text(_viewModel.errorMessage!)),
           );
         }
 
-        final task = snapshot.data;
-        final appBarTitle = task?.title ?? 'Task Details';
+        final task = _viewModel.task;
+        final appBarTitle = _viewModel.title;
 
-        if (!snapshot.hasData || task == null) {
+        if (_viewModel.isLoading || task == null) {
           return Scaffold(
             appBar: AppBar(title: Text(appBarTitle)),
             body: const Center(child: CircularProgressIndicator()),
@@ -47,8 +64,10 @@ class TaskDetailsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(task.title,
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                task.title,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 8),
               Text(task.description.isEmpty ? '-' : task.description),
               const SizedBox(height: 12),
@@ -70,7 +89,7 @@ class TaskDetailsScreen extends StatelessWidget {
               const SizedBox(height: 16),
               SizedBox(
                 height: 300,
-                child: CommentsScreen(taskId: taskId),
+                child: CommentsScreen(taskId: widget.taskId),
               ),
             ],
           ),
