@@ -12,6 +12,22 @@ import 'notifications/notification_service.dart';
 import 'pages/auth_screen.dart';
 import 'pages/task_page.dart';
 
+/* Home work day 34 - Notifications
+ Notification tasks map (implemented in project):
+ 1) Send test notification and open Notification Details from payload tap.
+ 2) Foreground local notification display and tap navigation.
+ 3) Save device token to Firestore and refresh it on token changes.
+ 4) Notification settings screen (enable/disable) with local persisted flag.
+ 5) Deep link handling: open a specific item by id from payload.
+ 6) Logging for notification receive/open events.
+
+ See implementation in notification modules:
+ - lib/notifications/notification_service.dart
+ - lib/notifications/notification_settings_screen.dart
+ - lib/notifications/notification_details_screen.dart
+ - lib/notifications/task_details_screen.dart
+*/
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -46,6 +62,7 @@ class _MainAppState extends State<MainApp> {
 
   Future<void> _initializeNotifications() async {
     try {
+      // Initializes handlers for foreground/background/open/tap notification flows.
       await getIt<NotificationService>().initialize();
       if (!mounted) {
         return;

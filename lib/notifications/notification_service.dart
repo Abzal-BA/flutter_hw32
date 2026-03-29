@@ -70,6 +70,7 @@ class NotificationService {
     await _requestPermission();
     await _syncCurrentToken();
 
+    // Task: Handle foreground messages and show local notifications.
     _foregroundSub = FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     _openSub = FirebaseMessaging.onMessageOpenedApp.listen((message) {
       final payload = NotificationPayload.fromRemoteMessage(
@@ -90,6 +91,7 @@ class NotificationService {
       _navigateFromPayload(payload);
     }
 
+    // Task: Persist refreshed device token to Firestore.
     _tokenRefreshSub = _messaging.onTokenRefresh.listen((token) async {
       _log('token_refresh', extra: <String, Object?>{'tokenLength': token.length});
       await _saveTokenForCurrentUser(token);
@@ -160,6 +162,7 @@ class NotificationService {
       return;
     }
 
+    // Task: Foreground local notification display.
     await _showLocalNotification(payload);
   }
 
@@ -188,6 +191,7 @@ class NotificationService {
   }
 
   Future<void> sendTestNotification({String? itemId}) async {
+    // Task: Send local test notification with payload for open/tap flows.
     final data = <String, dynamic>{
       'sentAt': DateTime.now().toIso8601String(),
       'type': 'local_test',
@@ -250,6 +254,7 @@ class NotificationService {
       return;
     }
 
+    // Task: Save device token and metadata under users/{uid}.
     await _firestore.collection('users').doc(uid).set(<String, dynamic>{
       'deviceToken': token,
       'tokenUpdatedAt': FieldValue.serverTimestamp(),
@@ -267,6 +272,7 @@ class NotificationService {
     }
 
     final itemId = payload.itemId;
+    // Task: Deep link handling to open specific item by id.
     if (itemId != null && itemId.isNotEmpty) {
       nav.push(
         MaterialPageRoute(builder: (_) => TaskDetailsScreen(taskId: itemId)),
@@ -293,6 +299,7 @@ class NotificationService {
     NotificationPayload? payload,
     Map<String, Object?> extra = const <String, Object?>{},
   }) {
+    // Task: Notification event logging for debugging receive/open flows.
     final stamp = DateTime.now().toIso8601String();
     debugPrint(
       '[notif][$stamp][$event] source=${payload?.source} title=${payload?.title} body=${payload?.body} itemId=${payload?.itemId} data=${payload?.data} extra=$extra',
