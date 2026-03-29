@@ -6,10 +6,10 @@ import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../auth/auth_cubit.dart';
+import '../auth/auth_controller.dart';
+import '../core/error_handler.dart';
 import '../notifications/notification_service.dart';
 import '../notifications/notification_settings_store.dart';
-import '../notes/notes_cubit.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -61,21 +61,18 @@ Future<void> setupDependencies() async {
     );
   }
 
-  if (!getIt.isRegistered<AuthCubit>()) {
-    getIt.registerFactory<AuthCubit>(
-      () => AuthCubit(
+  if (!getIt.isRegistered<AppErrorHandler>()) {
+    getIt.registerLazySingleton<AppErrorHandler>(AppErrorHandler.new);
+  }
+
+  if (!getIt.isRegistered<AuthController>()) {
+    getIt.registerFactory<AuthController>(
+      () => AuthController(
         auth: getIt<FirebaseAuth>(),
         googleSignIn: getIt<GoogleSignIn>(),
+        errorHandler: getIt<AppErrorHandler>(),
       ),
     );
   }
 
-  if (!getIt.isRegistered<NotesCubit>()) {
-    getIt.registerFactory<NotesCubit>(
-      () => NotesCubit(
-        firestore: getIt<FirebaseFirestore>(),
-        auth: getIt<FirebaseAuth>(),
-      ),
-    );
-  }
 }

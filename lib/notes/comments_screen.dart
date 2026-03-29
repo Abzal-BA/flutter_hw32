@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../core/error_handler.dart';
 import '../di/service_locator.dart';
-import 'comments_cubit.dart';
-import 'comments_state.dart';
+import 'comments_controller.dart';
 
 class CommentsScreen extends StatefulWidget {
   const CommentsScreen({required this.taskId, super.key});
@@ -16,30 +16,31 @@ class CommentsScreen extends StatefulWidget {
 }
 
 class _CommentsScreenState extends State<CommentsScreen> {
-  late final CommentsCubit _commentsCubit;
+  late final CommentsController _commentsController;
   final _textController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _commentsCubit = CommentsCubit(
+    _commentsController = CommentsController(
       taskId: widget.taskId,
       firestore: getIt<FirebaseFirestore>(),
       auth: getIt<FirebaseAuth>(),
+      errorHandler: getIt<AppErrorHandler>(),
     );
-    _commentsCubit.startListening();
+    _commentsController.startListening();
   }
 
   @override
   void dispose() {
     _textController.dispose();
-    _commentsCubit.close();
+    _commentsController.dispose();
     super.dispose();
   }
 
   Future<void> _submitComment() async {
-    await _commentsCubit.addComment(_textController.text);
-    if (mounted) {
+    await _commentsController.addComment(_textController.text);
+    if (mounted && _commentsController.state.errorMessage == null) {
       _textController.clear();
     }
   }
@@ -54,11 +55,10 @@ class _CommentsScreenState extends State<CommentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<CommentsState>(
-      stream: _commentsCubit.stream,
-      initialData: _commentsCubit.state,
-      builder: (context, snapshot) {
-        final state = snapshot.data ?? const CommentsState();
+    return AnimatedBuilder(
+      animation: _commentsController,
+      builder: (context, _) {
+        final state = _commentsController.state;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -147,7 +147,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                         ),
                         trailing: IconButton(
                           onPressed: () =>
-                              _commentsCubit.deleteComment(comment.id),
+                              _commentsController.deleteComment(comment.id),
                           icon: const Icon(Icons.delete_outline),
                           tooltip: 'Delete comment',
                         ),

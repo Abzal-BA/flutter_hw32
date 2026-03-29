@@ -21,12 +21,10 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }
 
   Future<void> _sendSimpleTest() async {
-    // Task: Trigger test notification that opens Notification Details on tap.
     await _notificationService.sendTestNotification();
   }
 
   Future<void> _sendDeepLinkTest() async {
-    // Task: Trigger deep-link test notification with item id in payload.
     final itemId = _itemIdController.text.trim();
     if (itemId.isEmpty) {
       if (!mounted) return;
@@ -53,7 +51,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 value: enabled,
                 title: const Text('Enable local notification display'),
                 subtitle: const Text('This flag is stored locally on device.'),
-                // Task: Persist on/off notification display setting locally.
                 onChanged: _notificationService.setNotificationsEnabled,
               );
             },

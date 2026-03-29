@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../auth/auth_cubit.dart';
+import '../auth/auth_controller.dart';
 import '../auth/auth_state.dart';
 import 'task_page.dart';
 
@@ -22,11 +22,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _updateDisplayName() async {
-    await context.read<AuthCubit>().updateDisplayName(_nameController.text);
+    await context.read<AuthController>().updateDisplayName(_nameController.text);
   }
 
   Future<void> _signOut() async {
-    await context.read<AuthCubit>().signOut();
+    await context.read<AuthController>().signOut();
   }
 
   Future<void> _openTaskPage() async {
@@ -37,11 +37,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authCubit = context.read<AuthCubit>();
+    final authController = context.read<AuthController>();
 
     return StreamBuilder<AuthState>(
-      stream: authCubit.stream,
-      initialData: authCubit.state,
+      stream: authController.stream,
+      initialData: authController.state,
       builder: (context, snapshot) {
         final state = snapshot.data ?? const AuthState();
         final user = state.user;

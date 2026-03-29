@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../auth/auth_cubit.dart';
+import '../auth/auth_controller.dart';
 import '../auth/auth_state.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -30,9 +30,9 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!isValid) return;
 
     FocusScope.of(context).unfocus();
-    final authCubit = context.read<AuthCubit>();
+    final authController = context.read<AuthController>();
 
-    await authCubit.submitWithEmailAndPassword(
+    await authController.submitWithEmailAndPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
       displayName: _nameController.text.trim(),
@@ -40,20 +40,20 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _forgotPassword() async {
-    await context.read<AuthCubit>().sendPasswordReset(_emailController.text);
+    await context.read<AuthController>().sendPasswordReset(_emailController.text);
   }
 
   Future<void> _signInWithGoogle() async {
-    await context.read<AuthCubit>().signInWithGoogle();
+    await context.read<AuthController>().signInWithGoogle();
   }
 
   @override
   Widget build(BuildContext context) {
-    final authCubit = context.read<AuthCubit>();
+    final authController = context.read<AuthController>();
 
     return StreamBuilder<AuthState>(
-      stream: authCubit.stream,
-      initialData: authCubit.state,
+      stream: authController.stream,
+      initialData: authController.state,
       builder: (context, snapshot) {
         final state = snapshot.data ?? const AuthState();
 
@@ -156,7 +156,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                       ),
                       TextButton(
-                        onPressed: state.isBusy ? null : authCubit.toggleAuthMode,
+                        onPressed: state.isBusy ? null : authController.toggleAuthMode,
                         child: Text(
                           state.isLoginMode
                               ? 'No account? Register'

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../auth/auth_cubit.dart';
+import '../auth/auth_controller.dart';
 import '../auth/auth_state.dart';
 
 class UserSettingsPage extends StatefulWidget {
@@ -17,7 +17,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   @override
   void initState() {
     super.initState();
-    final initialName = context.read<AuthCubit>().state.user?.displayName ?? '';
+    final initialName =
+        context.read<AuthController>().state.user?.displayName ?? '';
     _nameController = TextEditingController(text: initialName);
   }
 
@@ -28,16 +29,16 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   Future<void> _saveDisplayName() async {
-    await context.read<AuthCubit>().updateDisplayName(_nameController.text);
+    await context.read<AuthController>().updateDisplayName(_nameController.text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final authCubit = context.read<AuthCubit>();
+    final authController = context.read<AuthController>();
 
     return StreamBuilder<AuthState>(
-      stream: authCubit.stream,
-      initialData: authCubit.state,
+      stream: authController.stream,
+      initialData: authController.state,
       builder: (context, snapshot) {
         final state = snapshot.data ?? const AuthState();
         final user = state.user;

@@ -1,7 +1,7 @@
-import 'task_item.dart';
+import '../task_item.dart';
 
-class NotesState {
-  const NotesState({
+class NotesMvpState {
+  const NotesMvpState({
     this.items = const <TaskItem>[],
     this.isLoading = true,
     this.isLoadingMore = false,
@@ -13,8 +13,6 @@ class NotesState {
     this.hasMore = true,
   });
 
-  static const Object _unset = Object();
-
   final List<TaskItem> items;
   final bool isLoading;
   final bool isLoadingMore;
@@ -25,24 +23,23 @@ class NotesState {
   final String categoryFilter;
   final bool hasMore;
 
-  NotesState copyWith({
+  NotesMvpState copyWith({
     List<TaskItem>? items,
     bool? isLoading,
     bool? isLoadingMore,
-    Object? errorMessage = _unset,
+    String? errorMessage,
+    bool clearError = false,
     int? limit,
     String? searchTag,
     String? statusFilter,
     String? categoryFilter,
     bool? hasMore,
   }) {
-    return NotesState(
+    return NotesMvpState(
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      errorMessage: identical(errorMessage, _unset)
-          ? this.errorMessage
-          : errorMessage as String?,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       limit: limit ?? this.limit,
       searchTag: searchTag ?? this.searchTag,
       statusFilter: statusFilter ?? this.statusFilter,

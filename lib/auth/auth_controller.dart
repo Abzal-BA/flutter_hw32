@@ -1,37 +1,55 @@
 import 'dart:async';
 
-import 'package:bloc/bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'auth_error_mapper.dart';
-import 'auth_state.dart';
+import '../core/error_handler.dart';
 import '../firebase_options.dart';
+import 'auth_state.dart';
 
-class AuthCubit extends Cubit<AuthState> {
-  AuthCubit({
+class AuthController extends ChangeNotifier {
+  AuthController({
     required FirebaseAuth auth,
     required GoogleSignIn googleSignIn,
+    required AppErrorHandler errorHandler,
   })  : _auth = auth,
         _googleSignIn = googleSignIn,
-        super(AuthState(
+        _errorHandler = errorHandler,
+        _state = AuthState(
           user: auth.currentUser,
           isAuthReady: true,
           isBusy: false,
           isLoginMode: true,
           errorMessage: null,
           infoMessage: null,
-        )) {
+        ) {
+    _stateController = StreamController<AuthState>.broadcast(
+      onListen: () => _stateController.add(_state),
+    );
     _authSubscription = _auth.authStateChanges().listen(_handleAuthChanged);
   }
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  final AppErrorHandler _errorHandler;
+  late final StreamController<AuthState> _stateController;
   StreamSubscription<User?>? _authSubscription;
+  AuthState _state;
+
+  AuthState get state => _state;
+  Stream<AuthState> get stream => _stateController.stream;
+
+  void _emit(AuthState value) {
+    _state = value;
+    if (!_stateController.isClosed) {
+      _stateController.add(_state);
+    }
+    notifyListeners();
+  }
 
   void _handleAuthChanged(User? user) {
-    emit(
+    _emit(
       state.copyWith(
         user: user,
         isAuthReady: true,
@@ -42,7 +60,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void toggleAuthMode() {
-    emit(
+    _emit(
       state.copyWith(
         isLoginMode: !state.isLoginMode,
         errorMessage: null,
@@ -56,7 +74,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String password,
     String? displayName,
   }) async {
-    emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
+    _emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
 
     try {
       if (state.isLoginMode) {
@@ -73,46 +91,52 @@ class AuthCubit extends Cubit<AuthState> {
           await credential.user?.reload();
         }
       }
-    } on FirebaseAuthException catch (error) {
-      emit(state.copyWith(errorMessage: mapFirebaseAuthError(error)));
-    } catch (_) {
-      emit(state.copyWith(errorMessage: 'Unexpected error. Please try again.'));
+    } catch (error) {
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Unexpected error. Please try again.',
+          ),
+        ),
+      );
     } finally {
-      if (!isClosed) {
-        emit(state.copyWith(isBusy: false));
-      }
+      _emit(state.copyWith(isBusy: false));
     }
   }
 
   Future<void> sendPasswordReset(String email) async {
     final safeEmail = email.trim();
     if (safeEmail.isEmpty) {
-      emit(state.copyWith(errorMessage: 'Enter your email first to reset password.'));
+      _emit(state.copyWith(errorMessage: 'Enter your email first to reset password.'));
       return;
     }
 
-    emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
+    _emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
 
     try {
       await _auth.sendPasswordResetEmail(email: safeEmail);
-      emit(
+      _emit(
         state.copyWith(
           infoMessage: 'Password reset email sent to $safeEmail',
         ),
       );
-    } on FirebaseAuthException catch (error) {
-      emit(state.copyWith(errorMessage: mapFirebaseAuthError(error)));
-    } catch (_) {
-      emit(state.copyWith(errorMessage: 'Password reset failed. Please try again.'));
+    } catch (error) {
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Password reset failed. Please try again.',
+          ),
+        ),
+      );
     } finally {
-      if (!isClosed) {
-        emit(state.copyWith(isBusy: false));
-      }
+      _emit(state.copyWith(isBusy: false));
     }
   }
 
   Future<void> signInWithGoogle() async {
-    emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
+    _emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
 
     try {
       final options = DefaultFirebaseOptions.currentPlatform;
@@ -123,7 +147,7 @@ class AuthCubit extends Cubit<AuthState> {
       final hasAppleClientId = (options.iosClientId ?? '').isNotEmpty;
 
       if (requiresAppleClientId && !hasAppleClientId) {
-        emit(
+        _emit(
           state.copyWith(
             errorMessage:
                 'Google Sign-In is not configured yet. Enable Google provider and OAuth client in Firebase, then run flutterfire configure again.',
@@ -134,7 +158,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       final account = await _googleSignIn.signIn();
       if (account == null) {
-        emit(state.copyWith(errorMessage: 'Google sign-in canceled.'));
+        _emit(state.copyWith(errorMessage: 'Google sign-in canceled.'));
         return;
       }
 
@@ -145,52 +169,56 @@ class AuthCubit extends Cubit<AuthState> {
       );
 
       await _auth.signInWithCredential(credential);
-    } on FirebaseAuthException catch (error) {
-      emit(state.copyWith(errorMessage: mapFirebaseAuthError(error)));
-    } catch (_) {
-      emit(
+    } catch (error) {
+      _emit(
         state.copyWith(
-          errorMessage: 'Google sign-in failed. Check Firebase configuration.',
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Google sign-in failed. Check Firebase configuration.',
+          ),
         ),
       );
     } finally {
-      if (!isClosed) {
-        emit(state.copyWith(isBusy: false));
-      }
+      _emit(state.copyWith(isBusy: false));
     }
   }
 
   Future<void> updateDisplayName(String displayName) async {
     final user = _auth.currentUser;
     if (user == null) {
-      emit(state.copyWith(errorMessage: 'You must be signed in to update profile.'));
+      _emit(state.copyWith(errorMessage: 'You must be signed in to update profile.'));
       return;
     }
 
     final safeName = displayName.trim();
     if (safeName.isEmpty) {
-      emit(state.copyWith(errorMessage: 'Enter a name first.'));
+      _emit(state.copyWith(errorMessage: 'Enter a name first.'));
       return;
     }
 
-    emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
+    _emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
 
     try {
       await user.updateDisplayName(safeName);
       await user.reload();
 
-      emit(
+      _emit(
         state.copyWith(
           user: _auth.currentUser,
           infoMessage: 'Profile updated successfully.',
         ),
       );
-    } catch (_) {
-      emit(state.copyWith(errorMessage: 'Failed to update profile.'));
+    } catch (error) {
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Failed to update profile.',
+          ),
+        ),
+      );
     } finally {
-      if (!isClosed) {
-        emit(state.copyWith(isBusy: false));
-      }
+      _emit(state.copyWith(isBusy: false));
     }
   }
 
@@ -200,8 +228,9 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   @override
-  Future<void> close() async {
-    await _authSubscription?.cancel();
-    return super.close();
+  void dispose() {
+    unawaited(_authSubscription?.cancel());
+    unawaited(_stateController.close());
+    super.dispose();
   }
 }

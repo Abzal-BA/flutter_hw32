@@ -1,81 +1,61 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
-import '../auth/auth_controller.dart';
 import '../core/error_handler.dart';
 import '../di/service_locator.dart';
-import '../notifications/notification_service.dart';
-import '../notifications/notification_settings_screen.dart';
 import '../notifications/task_details_screen.dart';
-import '../notes/notes_controller.dart';
 import '../notes/notes_repository.dart';
-import '../notes/notes_view_state.dart';
 import '../notes/task_item.dart';
-import 'task_page_mvp.dart';
-import 'user_settings_page.dart';
+import '../notes/mvp/notes_mvp_state.dart';
+import '../notes/mvp/notes_mvp_view.dart';
+import '../notes/mvp/notes_presenter.dart';
 
-class TaskPage extends StatefulWidget {
-  // Day35 Task 1: Task screen implemented in MVC style.
-  const TaskPage({super.key});
+class TaskPageMvp extends StatefulWidget {
+  // Day35 Task 2: Same task screen implemented in MVP style.
+  const TaskPageMvp({super.key});
 
   @override
-  State<TaskPage> createState() => _TaskPageState();
+  State<TaskPageMvp> createState() => _TaskPageMvpState();
 }
 
-class _TaskPageState extends State<TaskPage> {
+class _TaskPageMvpState extends State<TaskPageMvp> implements NotesMvpView {
   final _searchTagController = TextEditingController();
-  late final NotesController _notesController;
-  final NotificationService _notificationService = getIt<NotificationService>();
-
-  Future<void> _signOut() async {
-    Navigator.of(context).pop();
-    await context.read<AuthController>().signOut();
-  }
-
-  Future<void> _openNotificationSettings() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
-    );
-  }
-
-  Future<void> _openUserSettings() async {
-    Navigator.of(context).pop();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const UserSettingsPage()),
-    );
-  }
-
-  Future<void> _openTaskMvpPage() async {
-    Navigator.of(context).pop();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const TaskPageMvp()),
-    );
-  }
+  late final NotesPresenter _presenter;
+  NotesMvpState _state = const NotesMvpState();
 
   @override
   void initState() {
     super.initState();
-    _notesController = NotesController(
+    _presenter = NotesPresenter(
       auth: getIt<FirebaseAuth>(),
       repository: NotesRepository(getIt<FirebaseFirestore>()),
       errorHandler: getIt<AppErrorHandler>(),
     );
-    _notesController.loadTasks();
+    _presenter.attach(this);
+    _presenter.loadTasks();
   }
 
   @override
   void dispose() {
     _searchTagController.dispose();
-    _notesController.dispose();
+    _presenter.detach();
+    _presenter.dispose();
     super.dispose();
+  }
+
+  @override
+  void render(NotesMvpState state) {
+    if (!mounted) return;
+    setState(() {
+      _state = state;
+    });
   }
 
   Future<void> _openCreateTaskDialog() async {
     final created = await showDialog<bool>(
       context: context,
-      builder: (context) => _TaskEditorDialog(notesController: _notesController),
+      builder: (context) => _TaskEditorDialogMvp(notesPresenter: _presenter),
     );
 
     if (created == true && mounted) {
@@ -89,7 +69,7 @@ class _TaskPageState extends State<TaskPage> {
     final updated = await showDialog<bool>(
       context: context,
       builder: (context) =>
-          _TaskEditorDialog(task: task, notesController: _notesController),
+          _TaskEditorDialogMvp(task: task, notesPresenter: _presenter),
     );
 
     if (updated == true && mounted) {
@@ -119,7 +99,7 @@ class _TaskPageState extends State<TaskPage> {
     );
 
     if (confirmed == true) {
-      await _notesController.deleteTask(task.id);
+      await _presenter.deleteTask(task.id);
     }
   }
 
@@ -135,167 +115,91 @@ class _TaskPageState extends State<TaskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: SafeArea(
-          child: Column(
-            children: [
-              const ListTile(
-                leading: Icon(Icons.menu),
-                title: Text('Menu'),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: const Text('User settings'),
-                onTap: _openUserSettings,
-              ),
-              ListTile(
-                leading: const Icon(Icons.notifications_active),
-                title: const Text('Notification settings'),
-                onTap: _openNotificationSettings,
-              ),
-              ListTile(
-                leading: const Icon(Icons.compare_arrows),
-                title: const Text('Task page MVP'),
-                onTap: _openTaskMvpPage,
-              ),
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Sign out'),
-                onTap: _signOut,
-              ),
-            ],
-          ),
-        ),
-      ),
       appBar: AppBar(
-        title: const Text('Task Page'),
-        actions: [
-          ValueListenableBuilder<bool>(
-            valueListenable: _notificationService.notificationsEnabled,
-            builder: (context, enabled, _) {
-              return IconButton(
-                onPressed: _openNotificationSettings,
-                tooltip: enabled
-                    ? 'Notifications are enabled'
-                    : 'Notifications are muted',
-                icon: Icon(
-                  enabled ? Icons.notifications_active : Icons.notifications_off,
-                  color: enabled ? null : Colors.orange.shade700,
-                ),
-              );
-            },
-          ),
-        ],
+        title: const Text('Task Page (MVP)'),
       ),
-      body: AnimatedBuilder(
-        animation: _notesController,
-        builder: (context, _) {
-          final notesState = _notesController.state;
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _searchTagController,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                labelText: 'Search by tag (array-contains)',
+                hintText: 'example: flutter',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  onPressed: () => _presenter.setSearchTag(_searchTagController.text),
+                  icon: const Icon(Icons.search),
+                ),
+              ),
+              onSubmitted: _presenter.setSearchTag,
+            ),
+            const SizedBox(height: 10),
+            Row(
               children: [
-                TextField(
-                  controller: _searchTagController,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    labelText: 'Search by tag (array-contains)',
-                    hintText: 'example: flutter',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      onPressed: () =>
-                          _notesController.setSearchTag(_searchTagController.text),
-                      icon: const Icon(Icons.search),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _state.statusFilter,
+                    decoration: const InputDecoration(
+                      labelText: 'Status filter',
+                      border: OutlineInputBorder(),
+                      isDense: true,
                     ),
-                  ),
-                  onSubmitted: _notesController.setSearchTag,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: notesState.statusFilter,
-                        decoration: const InputDecoration(
-                          labelText: 'Status filter',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'all',
-                            child: Text('All statuses'),
-                          ),
-                          DropdownMenuItem(value: 'todo', child: Text('To do')),
-                          DropdownMenuItem(
-                            value: 'in_progress',
-                            child: Text('In progress'),
-                          ),
-                          DropdownMenuItem(value: 'done', child: Text('Done')),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            _notesController.setStatusFilter(value);
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: notesState.categoryFilter,
-                        decoration: const InputDecoration(
-                          labelText: 'Category filter',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'all',
-                            child: Text('All categories'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'general',
-                            child: Text('General'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'study',
-                            child: Text('Study'),
-                          ),
-                          DropdownMenuItem(value: 'work', child: Text('Work')),
-                          DropdownMenuItem(
-                            value: 'personal',
-                            child: Text('Personal'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            _notesController.setCategoryFilter(value);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      _searchTagController.clear();
-                      _notesController.clearFilters();
+                    items: const [
+                      DropdownMenuItem(value: 'all', child: Text('All statuses')),
+                      DropdownMenuItem(value: 'todo', child: Text('To do')),
+                      DropdownMenuItem(value: 'in_progress', child: Text('In progress')),
+                      DropdownMenuItem(value: 'done', child: Text('Done')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        _presenter.setStatusFilter(value);
+                      }
                     },
-                    child: const Text('Clear filters'),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Expanded(child: _buildTaskList(notesState)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _state.categoryFilter,
+                    decoration: const InputDecoration(
+                      labelText: 'Category filter',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'all', child: Text('All categories')),
+                      DropdownMenuItem(value: 'general', child: Text('General')),
+                      DropdownMenuItem(value: 'study', child: Text('Study')),
+                      DropdownMenuItem(value: 'work', child: Text('Work')),
+                      DropdownMenuItem(value: 'personal', child: Text('Personal')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        _presenter.setCategoryFilter(value);
+                      }
+                    },
+                  ),
+                ),
               ],
             ),
-          );
-        },
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  _searchTagController.clear();
+                  _presenter.clearFilters();
+                },
+                child: const Text('Clear filters'),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Expanded(child: _buildTaskList()),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateTaskDialog,
@@ -305,24 +209,24 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  Widget _buildTaskList(NotesViewState notesState) {
-    if (notesState.isLoading) {
+  Widget _buildTaskList() {
+    if (_state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (notesState.errorMessage != null && notesState.items.isEmpty) {
+    if (_state.errorMessage != null && _state.items.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              notesState.errorMessage!,
+              _state.errorMessage!,
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.red.shade700),
             ),
             const SizedBox(height: 10),
             FilledButton(
-              onPressed: _notesController.loadTasks,
+              onPressed: _presenter.loadTasks,
               child: const Text('Retry'),
             ),
           ],
@@ -330,30 +234,28 @@ class _TaskPageState extends State<TaskPage> {
       );
     }
 
-    if (notesState.items.isEmpty) {
-      return const Center(
-        child: Text('No tasks yet. Add your first task.'),
-      );
+    if (_state.items.isEmpty) {
+      return const Center(child: Text('No tasks yet. Add your first task.'));
     }
 
     return ListView.builder(
-      itemCount: notesState.items.length + (notesState.hasMore ? 1 : 0),
+      itemCount: _state.items.length + (_state.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == notesState.items.length) {
+        if (index == _state.items.length) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Center(
-              child: notesState.isLoadingMore
+              child: _state.isLoadingMore
                   ? const CircularProgressIndicator()
                   : OutlinedButton(
-                      onPressed: _notesController.loadMore,
+                      onPressed: _presenter.loadMore,
                       child: const Text('Load 10 more'),
                     ),
             ),
           );
         }
 
-        final task = notesState.items[index];
+        final task = _state.items[index];
         return Card(
           child: ListTile(
             onTap: () {
@@ -378,12 +280,8 @@ class _TaskPageState extends State<TaskPage> {
                   runSpacing: 6,
                   children: [
                     Chip(label: Text('Status: ${task.status}')),
-                    Chip(
-                      label: Text('Category: ${task.category}'),
-                    ),
-                    ...task.tags.map(
-                      (tag) => Chip(label: Text('#$tag')),
-                    ),
+                    Chip(label: Text('Category: ${task.category}')),
+                    ...task.tags.map((tag) => Chip(label: Text('#$tag'))),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -412,22 +310,18 @@ class _TaskPageState extends State<TaskPage> {
   }
 }
 
-class _TaskEditorDialog extends StatefulWidget {
-  const _TaskEditorDialog({required this.notesController, this.task});
+class _TaskEditorDialogMvp extends StatefulWidget {
+  const _TaskEditorDialogMvp({required this.notesPresenter, this.task});
 
   final TaskItem? task;
-  final NotesController notesController;
+  final NotesPresenter notesPresenter;
 
   @override
-  State<_TaskEditorDialog> createState() => _TaskEditorDialogState();
+  State<_TaskEditorDialogMvp> createState() => _TaskEditorDialogMvpState();
 }
 
-class _TaskEditorDialogState extends State<_TaskEditorDialog> {
-  static const List<String> _statusOptions = <String>[
-    'todo',
-    'in_progress',
-    'done',
-  ];
+class _TaskEditorDialogMvpState extends State<_TaskEditorDialogMvp> {
+  static const List<String> _statusOptions = <String>['todo', 'in_progress', 'done'];
   static const List<String> _categoryOptions = <String>[
     'general',
     'study',
@@ -449,9 +343,7 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
     super.initState();
     final task = widget.task;
     _titleController = TextEditingController(text: task?.title ?? '');
-    _descriptionController = TextEditingController(
-      text: task?.description ?? '',
-    );
+    _descriptionController = TextEditingController(text: task?.description ?? '');
     _tagsController = TextEditingController(text: task?.tags.join(', ') ?? '');
     _status = task?.status ?? 'todo';
     _category = task?.category ?? 'general';
@@ -473,12 +365,12 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
       _submitting = true;
     });
 
-    final controller = widget.notesController;
+    final presenter = widget.notesPresenter;
     final currentTask = widget.task;
     bool success;
 
     if (currentTask == null) {
-      success = await controller.addTask(
+      success = await presenter.addTask(
         title: _titleController.text,
         description: _descriptionController.text,
         status: _status,
@@ -486,7 +378,7 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
         tagsRaw: _tagsController.text,
       );
     } else {
-      success = await controller.updateTask(
+      success = await presenter.updateTask(
         taskId: currentTask.id,
         title: _titleController.text,
         description: _descriptionController.text,
@@ -545,10 +437,7 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
                   border: OutlineInputBorder(),
                 ),
                 items: _statusOptions
-                    .map(
-                      (status) =>
-                          DropdownMenuItem(value: status, child: Text(status)),
-                    )
+                    .map((status) => DropdownMenuItem(value: status, child: Text(status)))
                     .toList(),
                 onChanged: (value) {
                   if (value != null) {
@@ -596,9 +485,7 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _submitting
-              ? null
-              : () => Navigator.of(context).pop(false),
+          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
         FilledButton(
