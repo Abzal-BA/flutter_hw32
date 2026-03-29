@@ -17,7 +17,6 @@ class NotesCubit extends Cubit<NotesState> {
   final FirebaseAuth _auth;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tasksSub;
 
-  // Task: Real-time list via snapshots() with proper loading/error/empty handling.
   Future<void> startListening() async {
     await _subscribe(resetLoading: true);
   }
@@ -44,7 +43,6 @@ class NotesCubit extends Cubit<NotesState> {
         .collection('tasks')
         .where('uid', isEqualTo: uid);
 
-    // Task: Filters by status and category.
     if (state.statusFilter != 'all') {
       query = query.where('status', isEqualTo: state.statusFilter);
     }
@@ -52,12 +50,10 @@ class NotesCubit extends Cubit<NotesState> {
       query = query.where('category', isEqualTo: state.categoryFilter);
     }
 
-    // Task: Search by field using array-contains on tags.
     if (state.searchTag.isNotEmpty) {
       query = query.where('tags', arrayContains: state.searchTag.toLowerCase());
     }
 
-    // Task: Pagination by 10 items + load more via increasing limit.
     query = query.orderBy('createdAt', descending: true).limit(state.limit);
 
     _tasksSub = query.snapshots().listen(
@@ -134,7 +130,6 @@ class NotesCubit extends Cubit<NotesState> {
     await _subscribe(resetLoading: true);
   }
 
-  // Task: Firestore CRUD - add task.
   Future<void> addTask({
     required String title,
     required String description,
@@ -172,7 +167,6 @@ class NotesCubit extends Cubit<NotesState> {
     }
   }
 
-  // Task: Firestore CRUD - update task.
   Future<void> updateTask({
     required String taskId,
     required String title,
@@ -203,7 +197,6 @@ class NotesCubit extends Cubit<NotesState> {
     }
   }
 
-  // Task: Firestore CRUD - delete task.
   Future<void> deleteTask(String taskId) async {
     try {
       await _firestore.collection('tasks').doc(taskId).delete();

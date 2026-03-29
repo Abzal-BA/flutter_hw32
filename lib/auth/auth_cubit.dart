@@ -15,8 +15,14 @@ class AuthCubit extends Cubit<AuthState> {
     required GoogleSignIn googleSignIn,
   })  : _auth = auth,
         _googleSignIn = googleSignIn,
-        super(const AuthState()) {
-    // Task: authStateChanges() automatically switches login/home screens.
+        super(AuthState(
+          user: auth.currentUser,
+          isAuthReady: true,
+          isBusy: false,
+          isLoginMode: true,
+          errorMessage: null,
+          infoMessage: null,
+        )) {
     _authSubscription = _auth.authStateChanges().listen(_handleAuthChanged);
   }
 
@@ -54,16 +60,13 @@ class AuthCubit extends Cubit<AuthState> {
 
     try {
       if (state.isLoginMode) {
-        // Task: Email/password sign-in.
         await _auth.signInWithEmailAndPassword(email: email, password: password);
       } else {
-        // Task: Email/password registration.
         final credential = await _auth.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
 
-        // Task: Save profile displayName on registration.
         final safeName = (displayName ?? '').trim();
         if (safeName.isNotEmpty) {
           await credential.user?.updateDisplayName(safeName);
@@ -71,7 +74,6 @@ class AuthCubit extends Cubit<AuthState> {
         }
       }
     } on FirebaseAuthException catch (error) {
-      // Task: Friendly error messages for auth failures.
       emit(state.copyWith(errorMessage: mapFirebaseAuthError(error)));
     } catch (_) {
       emit(state.copyWith(errorMessage: 'Unexpected error. Please try again.'));
@@ -92,7 +94,6 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
 
     try {
-      // Task: Forgot password flow and user confirmation.
       await _auth.sendPasswordResetEmail(email: safeEmail);
       emit(
         state.copyWith(
@@ -114,7 +115,6 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
 
     try {
-      // Guard: On Apple platforms, missing iOS client ID causes native crash.
       final options = DefaultFirebaseOptions.currentPlatform;
       final requiresAppleClientId =
           !kIsWeb &&
@@ -132,7 +132,6 @@ class AuthCubit extends Cubit<AuthState> {
         return;
       }
 
-      // Task: Google Sign-In support.
       final account = await _googleSignIn.signIn();
       if (account == null) {
         emit(state.copyWith(errorMessage: 'Google sign-in canceled.'));
@@ -177,7 +176,6 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(isBusy: true, errorMessage: null, infoMessage: null));
 
     try {
-      // Task: Update and show profile displayName on home screen.
       await user.updateDisplayName(safeName);
       await user.reload();
 
@@ -197,7 +195,6 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> signOut() async {
-    // Task: Sign out action and route protection back to login screen.
     await _auth.signOut();
     await _googleSignIn.signOut();
   }
