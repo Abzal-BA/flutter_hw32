@@ -47,6 +47,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           return Scaffold(
             appBar: AppBar(title: const Text('Task Details')),
             body: Center(
+              // Day 37 status factory usage: error widget is created by factory.
               child: StatusWidgetFactory.create(
                 StatusWidgetType.error,
                 message: _viewModel.errorMessage!,
@@ -62,6 +63,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           return Scaffold(
             appBar: AppBar(title: Text(appBarTitle)),
             body: Center(
+              // Day 37 status factory usage: loading widget is created by factory.
               child: StatusWidgetFactory.create(
                 StatusWidgetType.loading,
                 message: 'Loading task details...',
@@ -95,6 +97,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               Text('Created: ${_formatDate(task.createdAt)}'),
               const SizedBox(height: 6),
               Text('Updated: ${_formatDate(task.updatedAt)}'),
+              // Day 37 status factory usage: success widget is created by factory.
               const SizedBox(height: 12),
               StatusWidgetFactory.create(
                 StatusWidgetType.success,

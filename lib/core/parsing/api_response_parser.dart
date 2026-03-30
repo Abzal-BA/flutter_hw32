@@ -19,6 +19,7 @@ abstract class ApiResponseParser<T> {
 class ApiResponseParserFactory {
   const ApiResponseParserFactory._();
 
+  // Day 37 Factory: chooses a parser for a concrete remote response type.
   static ApiResponseParser<T> create<T>(ApiResponseType type) {
     switch (type) {
       case ApiResponseType.task:

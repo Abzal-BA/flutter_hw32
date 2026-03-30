@@ -33,6 +33,7 @@ class TasksViewModel extends ChangeNotifier {
   final DeleteTaskUseCase _deleteTaskUseCase;
   final IAuthRepository _authRepository;
   final AppErrorHandler _errorHandler;
+  // Day 37 Singleton usage #3: task actions are tracked through the shared analytics service.
   final AnalyticsService _analytics = AnalyticsService.instance;
 
   TasksState _state = const TasksState();

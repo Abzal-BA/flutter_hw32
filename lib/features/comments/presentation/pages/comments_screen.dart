@@ -64,6 +64,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
             if (state.errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
+                // Day 37 status factory usage: compact error state is created by factory.
                 child: StatusWidgetFactory.create(
                   StatusWidgetType.error,
                   message: state.errorMessage!,
@@ -100,6 +101,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
             const SizedBox(height: 16),
             if (state.isLoading)
               Center(
+                // Day 37 status factory usage: compact loading state is created by factory.
                 child: StatusWidgetFactory.create(
                   StatusWidgetType.loading,
                   message: 'Loading comments...',

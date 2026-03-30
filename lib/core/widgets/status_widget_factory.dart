@@ -5,6 +5,7 @@ enum StatusWidgetType { loading, success, error }
 class StatusWidgetFactory {
   const StatusWidgetFactory._();
 
+  // Day 37 Factory: builds loading/success/error widgets from enum input.
   static Widget create(
     StatusWidgetType type, {
     String? message,

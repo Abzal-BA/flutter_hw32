@@ -11,6 +11,7 @@ class CommentRemoteDataSource {
   final FirebaseFirestore _firestore;
 
   Stream<List<Comment>> watchComments(String taskId) {
+    // Day 37 parser factory usage: comment Firestore payloads are parsed by response type.
     final parser = ApiResponseParserFactory.create<CommentModel>(
       ApiResponseType.comment,
     );

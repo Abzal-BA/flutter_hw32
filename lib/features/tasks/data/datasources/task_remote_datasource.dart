@@ -31,6 +31,7 @@ class TaskRemoteDataSource {
     }
 
     query = query.orderBy('createdAt', descending: true).limit(limit);
+    // Day 37 parser factory usage: task Firestore payloads are parsed via a selected parser.
     final parser = ApiResponseParserFactory.create<TaskModel>(
       ApiResponseType.task,
     );
@@ -45,6 +46,7 @@ class TaskRemoteDataSource {
   }
 
   Stream<Task?> watchTask(String taskId) {
+    // Day 37 parser factory usage: single task payload parsing goes through the same factory.
     final parser = ApiResponseParserFactory.create<TaskModel>(
       ApiResponseType.task,
     );

@@ -6,6 +6,7 @@ void main() {
     AnalyticsService.resetForTest();
   });
 
+  // Day 37 test: proves the singleton instance is reused.
   test('singleton returns the same instance every time', () {
     final first = AnalyticsService.instance;
     final second = AnalyticsService.instance;
@@ -15,6 +16,7 @@ void main() {
     expect(identical(second, third), isTrue);
   });
 
+  // Day 37 test: proves the singleton constructor is not executed repeatedly.
   test('singleton internal constructor is not executed repeatedly', () {
     AnalyticsService.instance;
     AnalyticsService.instance;
@@ -23,6 +25,7 @@ void main() {
     expect(AnalyticsService.instanceCount, 1);
   });
 
+  // Day 37 test: proves shared state is visible through all singleton references.
   test('singleton shares state across references', () {
     final first = AnalyticsService.instance;
     final second = AnalyticsService.instance;

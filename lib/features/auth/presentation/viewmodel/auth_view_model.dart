@@ -51,6 +51,7 @@ class AuthViewModel extends ChangeNotifier {
   final SignInWithGoogleUseCase _signInWithGoogleUseCase;
   final UpdateDisplayNameUseCase _updateDisplayNameUseCase;
   final AppErrorHandler _errorHandler;
+  // Day 37 Singleton usage #2: auth events are tracked through the shared analytics service.
   final AnalyticsService _analytics = AnalyticsService.instance;
 
   StreamSubscription<AuthUser?>? _authSubscription;

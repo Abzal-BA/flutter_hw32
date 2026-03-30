@@ -300,6 +300,7 @@ class _TaskPageState extends State<TaskPage> {
 
   Widget _buildTaskList(TasksState tasksState) {
     if (tasksState.isLoading) {
+      // Day 37 status factory usage: loading state UI comes from StatusWidgetFactory.
       return Center(
         child: StatusWidgetFactory.create(
           StatusWidgetType.loading,
@@ -309,6 +310,7 @@ class _TaskPageState extends State<TaskPage> {
     }
 
     if (tasksState.errorMessage != null && tasksState.items.isEmpty) {
+      // Day 37 status factory usage: error state UI comes from StatusWidgetFactory.
       return Center(
         child: StatusWidgetFactory.create(
           StatusWidgetType.error,

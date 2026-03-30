@@ -301,6 +301,7 @@ class NotificationService {
     NotificationPayload? payload,
     Map<String, Object?> extra = const <String, Object?>{},
   }) {
+    // Day 37 Singleton usage #1: NotificationService sends analytics through the shared instance.
     AnalyticsService.instance.log(
       event,
       scope: 'NotificationService',

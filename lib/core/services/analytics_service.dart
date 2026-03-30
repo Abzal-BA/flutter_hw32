@@ -24,6 +24,7 @@ class AnalyticsService {
 
   final List<AnalyticsEvent> _events = <AnalyticsEvent>[];
 
+  // Day 37 Singleton: every call returns the same AnalyticsService instance.
   factory AnalyticsService() {
     return _instance ??= AnalyticsService._internal();
   }
