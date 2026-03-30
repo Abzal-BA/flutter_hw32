@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/app_error_handler.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../auth/domain/repositories/i_auth_repository.dart';
 import '../../domain/entities/task.dart';
 import '../../domain/usecases/add_task_usecase.dart';
@@ -19,12 +20,12 @@ class TasksViewModel extends ChangeNotifier {
     required DeleteTaskUseCase deleteTaskUseCase,
     required IAuthRepository authRepository,
     required AppErrorHandler errorHandler,
-  })  : _watchTasksUseCase = watchTasksUseCase,
-        _addTaskUseCase = addTaskUseCase,
-        _updateTaskUseCase = updateTaskUseCase,
-        _deleteTaskUseCase = deleteTaskUseCase,
-        _authRepository = authRepository,
-        _errorHandler = errorHandler;
+  }) : _watchTasksUseCase = watchTasksUseCase,
+       _addTaskUseCase = addTaskUseCase,
+       _updateTaskUseCase = updateTaskUseCase,
+       _deleteTaskUseCase = deleteTaskUseCase,
+       _authRepository = authRepository,
+       _errorHandler = errorHandler;
 
   final WatchTasksUseCase _watchTasksUseCase;
   final AddTaskUseCase _addTaskUseCase;
@@ -32,6 +33,7 @@ class TasksViewModel extends ChangeNotifier {
   final DeleteTaskUseCase _deleteTaskUseCase;
   final IAuthRepository _authRepository;
   final AppErrorHandler _errorHandler;
+  final AnalyticsService _analytics = AnalyticsService.instance;
 
   TasksState _state = const TasksState();
   TasksState get state => _state;
@@ -61,13 +63,15 @@ class TasksViewModel extends ChangeNotifier {
     await _tasksSub?.cancel();
 
     _tasksSub = _watchTasksUseCase
-        .call(WatchTasksParams(
-          uid: uid,
-          statusFilter: _state.statusFilter,
-          categoryFilter: _state.categoryFilter,
-          searchTag: _state.searchTag,
-          limit: _state.limit,
-        ))
+        .call(
+          WatchTasksParams(
+            uid: uid,
+            statusFilter: _state.statusFilter,
+            categoryFilter: _state.categoryFilter,
+            searchTag: _state.searchTag,
+            limit: _state.limit,
+          ),
+        )
         .listen(
           (items) {
             _state = _state.copyWith(
@@ -166,21 +170,32 @@ class TasksViewModel extends ChangeNotifier {
     }
 
     try {
-      await _addTaskUseCase.call(AddTaskParams(
-        uid: uid,
-        title: safeTitle,
-        description: description.trim(),
-        status: status,
-        category: category,
-        tags: _normalizeTags(tagsRaw),
-      ));
+      await _addTaskUseCase.call(
+        AddTaskParams(
+          uid: uid,
+          title: safeTitle,
+          description: description.trim(),
+          status: status,
+          category: category,
+          tags: _normalizeTags(tagsRaw),
+        ),
+      );
+      _analytics.log(
+        'add_task_success',
+        scope: 'TasksViewModel',
+        payload: <String, Object?>{'title': safeTitle, 'status': status},
+      );
       _state = _state.copyWith(clearError: true);
       notifyListeners();
       return true;
     } catch (error) {
+      _analytics.log(
+        'add_task_failed',
+        scope: 'TasksViewModel',
+        payload: <String, Object?>{'error': error.toString()},
+      );
       _state = _state.copyWith(
-        errorMessage:
-            'Failed to add task: ${_errorHandler.toMessage(error)}',
+        errorMessage: 'Failed to add task: ${_errorHandler.toMessage(error)}',
       );
       notifyListeners();
       return false;
@@ -203,18 +218,30 @@ class TasksViewModel extends ChangeNotifier {
     }
 
     try {
-      await _updateTaskUseCase.call(UpdateTaskParams(
-        taskId: taskId,
-        title: safeTitle,
-        description: description.trim(),
-        status: status,
-        category: category,
-        tags: _normalizeTags(tagsRaw),
-      ));
+      await _updateTaskUseCase.call(
+        UpdateTaskParams(
+          taskId: taskId,
+          title: safeTitle,
+          description: description.trim(),
+          status: status,
+          category: category,
+          tags: _normalizeTags(tagsRaw),
+        ),
+      );
+      _analytics.log(
+        'update_task_success',
+        scope: 'TasksViewModel',
+        payload: <String, Object?>{'taskId': taskId, 'status': status},
+      );
       _state = _state.copyWith(clearError: true);
       notifyListeners();
       return true;
     } catch (error) {
+      _analytics.log(
+        'update_task_failed',
+        scope: 'TasksViewModel',
+        payload: <String, Object?>{'error': error.toString()},
+      );
       _state = _state.copyWith(
         errorMessage:
             'Failed to update task: ${_errorHandler.toMessage(error)}',
@@ -227,8 +254,18 @@ class TasksViewModel extends ChangeNotifier {
   Future<void> deleteTask(String taskId) async {
     try {
       await _deleteTaskUseCase.call(taskId);
+      _analytics.log(
+        'delete_task_success',
+        scope: 'TasksViewModel',
+        payload: <String, Object?>{'taskId': taskId},
+      );
       _state = _state.copyWith(clearError: true);
     } catch (error) {
+      _analytics.log(
+        'delete_task_failed',
+        scope: 'TasksViewModel',
+        payload: <String, Object?>{'error': error.toString()},
+      );
       _state = _state.copyWith(
         errorMessage:
             'Failed to delete task: ${_errorHandler.toMessage(error)}',

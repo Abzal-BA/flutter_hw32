@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../../core/parsing/api_response_parser.dart';
 import '../../domain/entities/task.dart';
 import '../models/task_model.dart';
 
@@ -15,8 +16,9 @@ class TaskRemoteDataSource {
     required String searchTag,
     required int limit,
   }) {
-    Query<Map<String, dynamic>> query =
-        _firestore.collection('tasks').where('uid', isEqualTo: uid);
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('tasks')
+        .where('uid', isEqualTo: uid);
 
     if (statusFilter != 'all') {
       query = query.where('status', isEqualTo: statusFilter);
@@ -29,17 +31,32 @@ class TaskRemoteDataSource {
     }
 
     query = query.orderBy('createdAt', descending: true).limit(limit);
-    return query
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map(TaskModel.fromDoc).toList());
+    final parser = ApiResponseParserFactory.create<TaskModel>(
+      ApiResponseType.task,
+    );
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map(
+            (doc) =>
+                parser.parse(ApiResponseContext(data: doc.data(), id: doc.id)),
+          )
+          .toList(),
+    );
   }
 
   Stream<Task?> watchTask(String taskId) {
+    final parser = ApiResponseParserFactory.create<TaskModel>(
+      ApiResponseType.task,
+    );
     return _firestore
         .collection('tasks')
         .doc(taskId)
         .snapshots()
-        .map((doc) => doc.exists ? TaskModel.fromDoc(doc) : null);
+        .map(
+          (doc) => doc.exists
+              ? parser.parse(ApiResponseContext(data: doc.data()!, id: doc.id))
+              : null,
+        );
   }
 
   Future<void> addTask({

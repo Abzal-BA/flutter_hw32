@@ -13,11 +13,17 @@ class CommentModel extends Comment {
   });
 
   factory CommentModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? <String, dynamic>{};
+    return CommentModel.fromMap(doc.data() ?? <String, dynamic>{}, id: doc.id);
+  }
+
+  factory CommentModel.fromMap(
+    Map<String, dynamic> data, {
+    required String id,
+  }) {
     final createdTimestamp = data['createdAt'];
 
     return CommentModel(
-      id: doc.id,
+      id: id,
       taskId: (data['taskId'] ?? '').toString(),
       uid: (data['uid'] ?? '').toString(),
       userName: (data['userName'] ?? 'Unknown').toString(),

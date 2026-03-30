@@ -5,6 +5,7 @@ import '../../../../di/service_locator.dart';
 import '../../../notifications/notification_service.dart';
 import '../../../notifications/presentation/pages/notification_settings_screen.dart';
 import '../../../auth/presentation/viewmodel/auth_view_model.dart';
+import '../../../../core/widgets/status_widget_factory.dart';
 import '../../domain/entities/task.dart';
 import '../state/tasks_state.dart';
 import '../viewmodel/tasks_view_model.dart';
@@ -63,7 +64,13 @@ class _TaskPageState extends State<TaskPage> {
 
     if (created == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Task created successfully.')),
+        SnackBar(
+          content: StatusWidgetFactory.create(
+            StatusWidgetType.success,
+            message: 'Task created successfully.',
+            compact: true,
+          ),
+        ),
       );
     }
   }
@@ -77,7 +84,13 @@ class _TaskPageState extends State<TaskPage> {
 
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Task updated successfully.')),
+        SnackBar(
+          content: StatusWidgetFactory.create(
+            StatusWidgetType.success,
+            message: 'Task updated successfully.',
+            compact: true,
+          ),
+        ),
       );
     }
   }
@@ -287,25 +300,20 @@ class _TaskPageState extends State<TaskPage> {
 
   Widget _buildTaskList(TasksState tasksState) {
     if (tasksState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: StatusWidgetFactory.create(
+          StatusWidgetType.loading,
+          message: 'Loading tasks...',
+        ),
+      );
     }
 
     if (tasksState.errorMessage != null && tasksState.items.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              tasksState.errorMessage!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red.shade700),
-            ),
-            const SizedBox(height: 10),
-            FilledButton(
-              onPressed: _viewModel.loadTasks,
-              child: const Text('Retry'),
-            ),
-          ],
+        child: StatusWidgetFactory.create(
+          StatusWidgetType.error,
+          message: tasksState.errorMessage!,
+          onRetry: _viewModel.loadTasks,
         ),
       );
     }

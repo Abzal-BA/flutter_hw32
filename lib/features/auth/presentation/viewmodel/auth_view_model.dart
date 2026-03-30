@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/app_error_handler.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../domain/usecases/register_with_email_usecase.dart';
@@ -23,22 +24,23 @@ class AuthViewModel extends ChangeNotifier {
     required SignInWithGoogleUseCase signInWithGoogleUseCase,
     required UpdateDisplayNameUseCase updateDisplayNameUseCase,
     required AppErrorHandler errorHandler,
-  })  : _authRepository = authRepository,
-        _signInWithEmailUseCase = signInWithEmailUseCase,
-        _registerWithEmailUseCase = registerWithEmailUseCase,
-        _signOutUseCase = signOutUseCase,
-        _sendPasswordResetUseCase = sendPasswordResetUseCase,
-        _signInWithGoogleUseCase = signInWithGoogleUseCase,
-        _updateDisplayNameUseCase = updateDisplayNameUseCase,
-        _errorHandler = errorHandler,
-        _state = AuthState(
-          user: authRepository.currentUser,
-          isAuthReady: true,
-          isBusy: false,
-          isLoginMode: true,
-        ) {
-    _authSubscription =
-        _authRepository.authStateChanges.listen(_handleAuthChanged);
+  }) : _authRepository = authRepository,
+       _signInWithEmailUseCase = signInWithEmailUseCase,
+       _registerWithEmailUseCase = registerWithEmailUseCase,
+       _signOutUseCase = signOutUseCase,
+       _sendPasswordResetUseCase = sendPasswordResetUseCase,
+       _signInWithGoogleUseCase = signInWithGoogleUseCase,
+       _updateDisplayNameUseCase = updateDisplayNameUseCase,
+       _errorHandler = errorHandler,
+       _state = AuthState(
+         user: authRepository.currentUser,
+         isAuthReady: true,
+         isBusy: false,
+         isLoginMode: true,
+       ) {
+    _authSubscription = _authRepository.authStateChanges.listen(
+      _handleAuthChanged,
+    );
   }
 
   final IAuthRepository _authRepository;
@@ -49,6 +51,7 @@ class AuthViewModel extends ChangeNotifier {
   final SignInWithGoogleUseCase _signInWithGoogleUseCase;
   final UpdateDisplayNameUseCase _updateDisplayNameUseCase;
   final AppErrorHandler _errorHandler;
+  final AnalyticsService _analytics = AnalyticsService.instance;
 
   StreamSubscription<AuthUser?>? _authSubscription;
   AuthState _state;
@@ -61,20 +64,24 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   void _handleAuthChanged(AuthUser? user) {
-    _emit(state.copyWith(
-      user: user,
-      isAuthReady: true,
-      isBusy: false,
-      clearError: true,
-    ));
+    _emit(
+      state.copyWith(
+        user: user,
+        isAuthReady: true,
+        isBusy: false,
+        clearError: true,
+      ),
+    );
   }
 
   void toggleAuthMode() {
-    _emit(state.copyWith(
-      isLoginMode: !state.isLoginMode,
-      clearError: true,
-      clearInfo: true,
-    ));
+    _emit(
+      state.copyWith(
+        isLoginMode: !state.isLoginMode,
+        clearError: true,
+        clearInfo: true,
+      ),
+    );
   }
 
   void clearInfoMessage() {
@@ -94,6 +101,11 @@ class AuthViewModel extends ChangeNotifier {
         await _signInWithEmailUseCase.call(
           SignInWithEmailParams(email: email, password: password),
         );
+        _analytics.log(
+          'sign_in_email_success',
+          scope: 'AuthViewModel',
+          payload: <String, Object?>{'email': email},
+        );
       } else {
         await _registerWithEmailUseCase.call(
           RegisterWithEmailParams(
@@ -102,14 +114,26 @@ class AuthViewModel extends ChangeNotifier {
             displayName: displayName,
           ),
         );
+        _analytics.log(
+          'register_email_success',
+          scope: 'AuthViewModel',
+          payload: <String, Object?>{'email': email},
+        );
       }
     } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Unexpected error. Please try again.',
+      _analytics.log(
+        'submit_auth_failed',
+        scope: 'AuthViewModel',
+        payload: <String, Object?>{'error': error.toString()},
+      );
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Unexpected error. Please try again.',
+          ),
         ),
-      ));
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }
@@ -118,9 +142,11 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> sendPasswordReset(String email) async {
     final safeEmail = email.trim();
     if (safeEmail.isEmpty) {
-      _emit(state.copyWith(
-        errorMessage: 'Enter your email first to reset password.',
-      ));
+      _emit(
+        state.copyWith(
+          errorMessage: 'Enter your email first to reset password.',
+        ),
+      );
       return;
     }
 
@@ -128,16 +154,28 @@ class AuthViewModel extends ChangeNotifier {
 
     try {
       await _sendPasswordResetUseCase.call(safeEmail);
-      _emit(state.copyWith(
-        infoMessage: 'Password reset email sent to $safeEmail',
-      ));
+      _analytics.log(
+        'password_reset_sent',
+        scope: 'AuthViewModel',
+        payload: <String, Object?>{'email': safeEmail},
+      );
+      _emit(
+        state.copyWith(infoMessage: 'Password reset email sent to $safeEmail'),
+      );
     } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Password reset failed. Please try again.',
+      _analytics.log(
+        'password_reset_failed',
+        scope: 'AuthViewModel',
+        payload: <String, Object?>{'error': error.toString()},
+      );
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Password reset failed. Please try again.',
+          ),
         ),
-      ));
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }
@@ -148,13 +186,21 @@ class AuthViewModel extends ChangeNotifier {
 
     try {
       await _signInWithGoogleUseCase.call();
+      _analytics.log('sign_in_google_success', scope: 'AuthViewModel');
     } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Google sign-in failed. Check Firebase configuration.',
+      _analytics.log(
+        'sign_in_google_failed',
+        scope: 'AuthViewModel',
+        payload: <String, Object?>{'error': error.toString()},
+      );
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Google sign-in failed. Check Firebase configuration.',
+          ),
         ),
-      ));
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }
@@ -163,9 +209,11 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> updateDisplayName(String displayName) async {
     final user = _authRepository.currentUser;
     if (user == null) {
-      _emit(state.copyWith(
-        errorMessage: 'You must be signed in to update profile.',
-      ));
+      _emit(
+        state.copyWith(
+          errorMessage: 'You must be signed in to update profile.',
+        ),
+      );
       return;
     }
 
@@ -179,23 +227,40 @@ class AuthViewModel extends ChangeNotifier {
 
     try {
       await _updateDisplayNameUseCase.call(safeName);
-      _emit(state.copyWith(
-        user: _authRepository.currentUser,
-        infoMessage: 'Profile updated successfully.',
-      ));
-    } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Failed to update profile.',
+      _analytics.log(
+        'update_display_name_success',
+        scope: 'AuthViewModel',
+        payload: <String, Object?>{'displayName': safeName},
+      );
+      _emit(
+        state.copyWith(
+          user: _authRepository.currentUser,
+          infoMessage: 'Profile updated successfully.',
         ),
-      ));
+      );
+    } catch (error) {
+      _analytics.log(
+        'update_display_name_failed',
+        scope: 'AuthViewModel',
+        payload: <String, Object?>{'error': error.toString()},
+      );
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Failed to update profile.',
+          ),
+        ),
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }
   }
 
-  Future<void> signOut() => _signOutUseCase.call();
+  Future<void> signOut() async {
+    await _signOutUseCase.call();
+    _analytics.log('sign_out', scope: 'AuthViewModel');
+  }
 
   @override
   void dispose() {
