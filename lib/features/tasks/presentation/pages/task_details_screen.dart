@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../di/service_locator.dart';
-import '../../../../core/widgets/status_widget_factory.dart';
 import '../../../comments/presentation/pages/comments_screen.dart';
 import '../viewmodel/task_details_view_model.dart';
 
@@ -46,13 +45,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         if (_viewModel.errorMessage != null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Task Details')),
-            body: Center(
-              // Day 37 status factory usage: error widget is created by factory.
-              child: StatusWidgetFactory.create(
-                StatusWidgetType.error,
-                message: _viewModel.errorMessage!,
-              ),
-            ),
+            body: Center(child: Text(_viewModel.errorMessage!)),
           );
         }
 
@@ -62,13 +55,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         if (_viewModel.isLoading || task == null) {
           return Scaffold(
             appBar: AppBar(title: Text(appBarTitle)),
-            body: Center(
-              // Day 37 status factory usage: loading widget is created by factory.
-              child: StatusWidgetFactory.create(
-                StatusWidgetType.loading,
-                message: 'Loading task details...',
-              ),
-            ),
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -97,12 +84,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               Text('Created: ${_formatDate(task.createdAt)}'),
               const SizedBox(height: 6),
               Text('Updated: ${_formatDate(task.updatedAt)}'),
-              // Day 37 status factory usage: success widget is created by factory.
-              const SizedBox(height: 12),
-              StatusWidgetFactory.create(
-                StatusWidgetType.success,
-                message: 'Task loaded successfully.',
-              ),
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 16),

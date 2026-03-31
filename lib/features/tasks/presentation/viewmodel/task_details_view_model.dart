@@ -26,7 +26,6 @@ class TaskDetailsViewModel extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
 
-  String get taskId => _taskId;
   Task? get task => _task;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;

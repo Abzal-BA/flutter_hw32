@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../../core/parsing/api_response_parser.dart';
 import '../../domain/entities/task.dart';
 import '../models/task_model.dart';
 
@@ -31,34 +30,17 @@ class TaskRemoteDataSource {
     }
 
     query = query.orderBy('createdAt', descending: true).limit(limit);
-    // Day 37 parser factory usage: task Firestore payloads are parsed via a selected parser.
-    final parser = ApiResponseParserFactory.create<TaskModel>(
-      ApiResponseType.task,
-    );
     return query.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map(
-            (doc) =>
-                parser.parse(ApiResponseContext(data: doc.data(), id: doc.id)),
-          )
-          .toList(),
+      (snapshot) => snapshot.docs.map(TaskModel.fromDoc).toList(),
     );
   }
 
   Stream<Task?> watchTask(String taskId) {
-    // Day 37 parser factory usage: single task payload parsing goes through the same factory.
-    final parser = ApiResponseParserFactory.create<TaskModel>(
-      ApiResponseType.task,
-    );
     return _firestore
         .collection('tasks')
         .doc(taskId)
         .snapshots()
-        .map(
-          (doc) => doc.exists
-              ? parser.parse(ApiResponseContext(data: doc.data()!, id: doc.id))
-              : null,
-        );
+        .map((doc) => doc.exists ? TaskModel.fromDoc(doc) : null);
   }
 
   Future<void> addTask({

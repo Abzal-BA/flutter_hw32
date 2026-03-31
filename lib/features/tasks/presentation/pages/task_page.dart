@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../../di/service_locator.dart';
 import '../../../notifications/notification_service.dart';
 import '../../../notifications/presentation/pages/notification_settings_screen.dart';
+import '../../../notes/presentation/pages/notes_page.dart';
 import '../../../auth/presentation/viewmodel/auth_view_model.dart';
-import '../../../../core/widgets/status_widget_factory.dart';
 import '../../domain/entities/task.dart';
 import '../state/tasks_state.dart';
 import '../viewmodel/tasks_view_model.dart';
@@ -42,6 +42,13 @@ class _TaskPageState extends State<TaskPage> {
     ).push(MaterialPageRoute(builder: (_) => const UserSettingsPage()));
   }
 
+  Future<void> _openNotesPage() async {
+    Navigator.of(context).pop();
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NotesPage()));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -64,13 +71,7 @@ class _TaskPageState extends State<TaskPage> {
 
     if (created == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: StatusWidgetFactory.create(
-            StatusWidgetType.success,
-            message: 'Task created successfully.',
-            compact: true,
-          ),
-        ),
+        const SnackBar(content: Text('Task created successfully.')),
       );
     }
   }
@@ -84,13 +85,7 @@ class _TaskPageState extends State<TaskPage> {
 
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: StatusWidgetFactory.create(
-            StatusWidgetType.success,
-            message: 'Task updated successfully.',
-            compact: true,
-          ),
-        ),
+        const SnackBar(content: Text('Task updated successfully.')),
       );
     }
   }
@@ -149,6 +144,11 @@ class _TaskPageState extends State<TaskPage> {
                   Navigator.of(context).pop();
                   _openNotificationSettings();
                 },
+              ),
+              ListTile(
+                leading: const Icon(Icons.notes_outlined),
+                title: const Text('Notes repository demo'),
+                onTap: _openNotesPage,
               ),
               ListTile(
                 leading: const Icon(Icons.logout),
@@ -300,22 +300,25 @@ class _TaskPageState extends State<TaskPage> {
 
   Widget _buildTaskList(TasksState tasksState) {
     if (tasksState.isLoading) {
-      // Day 37 status factory usage: loading state UI comes from StatusWidgetFactory.
-      return Center(
-        child: StatusWidgetFactory.create(
-          StatusWidgetType.loading,
-          message: 'Loading tasks...',
-        ),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (tasksState.errorMessage != null && tasksState.items.isEmpty) {
-      // Day 37 status factory usage: error state UI comes from StatusWidgetFactory.
       return Center(
-        child: StatusWidgetFactory.create(
-          StatusWidgetType.error,
-          message: tasksState.errorMessage!,
-          onRetry: _viewModel.loadTasks,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              tasksState.errorMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.red.shade700),
+            ),
+            const SizedBox(height: 10),
+            FilledButton(
+              onPressed: _viewModel.loadTasks,
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       );
     }

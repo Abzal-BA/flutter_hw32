@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../di/service_locator.dart';
-import '../../../../core/widgets/status_widget_factory.dart';
 import '../viewmodel/comments_view_model.dart';
 
 class CommentsScreen extends StatefulWidget {
@@ -64,11 +63,16 @@ class _CommentsScreenState extends State<CommentsScreen> {
             if (state.errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                // Day 37 status factory usage: compact error state is created by factory.
-                child: StatusWidgetFactory.create(
-                  StatusWidgetType.error,
-                  message: state.errorMessage!,
-                  compact: true,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    state.errorMessage!,
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                  ),
                 ),
               ),
             Row(
@@ -100,14 +104,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
             ),
             const SizedBox(height: 16),
             if (state.isLoading)
-              Center(
-                // Day 37 status factory usage: compact loading state is created by factory.
-                child: StatusWidgetFactory.create(
-                  StatusWidgetType.loading,
-                  message: 'Loading comments...',
-                  compact: true,
-                ),
-              )
+              const Center(child: CircularProgressIndicator())
             else if (state.items.isEmpty)
               Center(
                 child: Padding(

@@ -26,6 +26,13 @@ import '../features/comments/domain/usecases/watch_comments_usecase.dart';
 import '../features/comments/presentation/viewmodel/comments_view_model.dart';
 import '../features/notifications/notification_service.dart';
 import '../features/notifications/notification_settings_store.dart';
+import '../features/notes/data/adapters/note_remote_adapter.dart';
+import '../features/notes/data/datasources/note_local_datasource.dart';
+import '../features/notes/data/datasources/note_remote_datasource.dart';
+import '../features/notes/data/repositories/notes_repository_impl.dart';
+import '../features/notes/domain/repositories/i_notes_repository.dart';
+import '../features/notes/domain/usecases/watch_notes_usecase.dart';
+import '../features/notes/presentation/viewmodel/notes_view_model.dart';
 import '../features/tasks/data/datasources/task_remote_datasource.dart';
 import '../features/tasks/data/repositories/task_repository_impl.dart';
 import '../features/tasks/domain/repositories/i_task_repository.dart';
@@ -88,6 +95,41 @@ Future<void> setupDependencies() async {
   // ── Core ──────────────────────────────────────────────────────────────────
   if (!getIt.isRegistered<AppErrorHandler>()) {
     getIt.registerLazySingleton<AppErrorHandler>(AppErrorHandler.new);
+  }
+
+  // ── Notes feature ─────────────────────────────────────────────────────────
+  if (!getIt.isRegistered<NoteRemoteAdapter>()) {
+    getIt.registerLazySingleton<NoteRemoteAdapter>(NoteRemoteAdapter.new);
+  }
+  if (!getIt.isRegistered<NoteLocalDataSource>()) {
+    getIt.registerLazySingleton<NoteLocalDataSource>(
+      () => NoteLocalDataSource(getIt<SharedPreferences>()),
+    );
+  }
+  if (!getIt.isRegistered<NoteRemoteDataSource>()) {
+    getIt.registerLazySingleton<NoteRemoteDataSource>(NoteRemoteDataSource.new);
+  }
+  if (!getIt.isRegistered<INotesRepository>()) {
+    getIt.registerLazySingleton<INotesRepository>(
+      () => NotesRepositoryImpl(
+        remoteDataSource: getIt<NoteRemoteDataSource>(),
+        localDataSource: getIt<NoteLocalDataSource>(),
+        remoteAdapter: getIt<NoteRemoteAdapter>(),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<WatchNotesUseCase>()) {
+    getIt.registerLazySingleton<WatchNotesUseCase>(
+      () => WatchNotesUseCase(getIt<INotesRepository>()),
+    );
+  }
+  if (!getIt.isRegistered<NotesViewModel>()) {
+    getIt.registerFactory<NotesViewModel>(
+      () => NotesViewModel(
+        watchNotesUseCase: getIt<WatchNotesUseCase>(),
+        errorHandler: getIt<AppErrorHandler>(),
+      ),
+    );
   }
 
   // ── Auth feature ──────────────────────────────────────────────────────────

@@ -28,12 +28,12 @@ class NotificationPayload {
     RemoteMessage message, {
     required String source,
   }) {
-    return NotificationPayload.fromMap(<String, dynamic>{
-      'source': source,
-      'title': message.notification?.title ?? message.data['title'],
-      'body': message.notification?.body ?? message.data['body'],
-      'data': message.data,
-    }, fallbackSource: source);
+    return NotificationPayload(
+      source: source,
+      title: message.notification?.title ?? message.data['title']?.toString(),
+      body: message.notification?.body ?? message.data['body']?.toString(),
+      data: Map<String, dynamic>.from(message.data),
+    );
   }
 
   factory NotificationPayload.fromJsonString(String raw) {
@@ -46,27 +46,20 @@ class NotificationPayload {
         );
       }
 
-      return NotificationPayload.fromMap(decoded, fallbackSource: 'local');
+      return NotificationPayload(
+        source: (decoded['source'] ?? 'local').toString(),
+        title: decoded['title']?.toString(),
+        body: decoded['body']?.toString(),
+        data: Map<String, dynamic>.from(
+          (decoded['data'] as Map?) ?? const <String, dynamic>{},
+        ),
+      );
     } catch (_) {
       return const NotificationPayload(
         source: 'local',
         data: <String, dynamic>{},
       );
     }
-  }
-
-  factory NotificationPayload.fromMap(
-    Map<String, dynamic> raw, {
-    required String fallbackSource,
-  }) {
-    return NotificationPayload(
-      source: (raw['source'] ?? fallbackSource).toString(),
-      title: raw['title']?.toString(),
-      body: raw['body']?.toString(),
-      data: Map<String, dynamic>.from(
-        (raw['data'] as Map?) ?? const <String, dynamic>{},
-      ),
-    );
   }
 
   String toJsonString() {

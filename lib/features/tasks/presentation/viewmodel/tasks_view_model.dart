@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/app_error_handler.dart';
-import '../../../../core/services/analytics_service.dart';
 import '../../../auth/domain/repositories/i_auth_repository.dart';
 import '../../domain/entities/task.dart';
 import '../../domain/usecases/add_task_usecase.dart';
@@ -33,8 +32,6 @@ class TasksViewModel extends ChangeNotifier {
   final DeleteTaskUseCase _deleteTaskUseCase;
   final IAuthRepository _authRepository;
   final AppErrorHandler _errorHandler;
-  // Day 37 Singleton usage #3: task actions are tracked through the shared analytics service.
-  final AnalyticsService _analytics = AnalyticsService.instance;
 
   TasksState _state = const TasksState();
   TasksState get state => _state;
@@ -181,20 +178,10 @@ class TasksViewModel extends ChangeNotifier {
           tags: _normalizeTags(tagsRaw),
         ),
       );
-      _analytics.log(
-        'add_task_success',
-        scope: 'TasksViewModel',
-        payload: <String, Object?>{'title': safeTitle, 'status': status},
-      );
       _state = _state.copyWith(clearError: true);
       notifyListeners();
       return true;
     } catch (error) {
-      _analytics.log(
-        'add_task_failed',
-        scope: 'TasksViewModel',
-        payload: <String, Object?>{'error': error.toString()},
-      );
       _state = _state.copyWith(
         errorMessage: 'Failed to add task: ${_errorHandler.toMessage(error)}',
       );
@@ -229,20 +216,10 @@ class TasksViewModel extends ChangeNotifier {
           tags: _normalizeTags(tagsRaw),
         ),
       );
-      _analytics.log(
-        'update_task_success',
-        scope: 'TasksViewModel',
-        payload: <String, Object?>{'taskId': taskId, 'status': status},
-      );
       _state = _state.copyWith(clearError: true);
       notifyListeners();
       return true;
     } catch (error) {
-      _analytics.log(
-        'update_task_failed',
-        scope: 'TasksViewModel',
-        payload: <String, Object?>{'error': error.toString()},
-      );
       _state = _state.copyWith(
         errorMessage:
             'Failed to update task: ${_errorHandler.toMessage(error)}',
@@ -255,18 +232,8 @@ class TasksViewModel extends ChangeNotifier {
   Future<void> deleteTask(String taskId) async {
     try {
       await _deleteTaskUseCase.call(taskId);
-      _analytics.log(
-        'delete_task_success',
-        scope: 'TasksViewModel',
-        payload: <String, Object?>{'taskId': taskId},
-      );
       _state = _state.copyWith(clearError: true);
     } catch (error) {
-      _analytics.log(
-        'delete_task_failed',
-        scope: 'TasksViewModel',
-        payload: <String, Object?>{'error': error.toString()},
-      );
       _state = _state.copyWith(
         errorMessage:
             'Failed to delete task: ${_errorHandler.toMessage(error)}',

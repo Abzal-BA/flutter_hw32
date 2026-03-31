@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import '../../core/services/analytics_service.dart';
 import '../tasks/presentation/pages/task_details_screen.dart';
 import 'notification_payload.dart';
 import 'notification_settings_store.dart';
@@ -301,18 +300,9 @@ class NotificationService {
     NotificationPayload? payload,
     Map<String, Object?> extra = const <String, Object?>{},
   }) {
-    // Day 37 Singleton usage #1: NotificationService sends analytics through the shared instance.
-    AnalyticsService.instance.log(
-      event,
-      scope: 'NotificationService',
-      payload: <String, Object?>{
-        'source': payload?.source,
-        'title': payload?.title,
-        'body': payload?.body,
-        'itemId': payload?.itemId,
-        'data': payload?.data,
-        ...extra,
-      },
+    final stamp = DateTime.now().toIso8601String();
+    debugPrint(
+      '[notif][$stamp][$event] source=${payload?.source} title=${payload?.title} body=${payload?.body} itemId=${payload?.itemId} data=${payload?.data} extra=$extra',
     );
   }
 

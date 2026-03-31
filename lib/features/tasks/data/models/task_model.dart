@@ -16,15 +16,12 @@ class TaskModel extends Task {
   });
 
   factory TaskModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    return TaskModel.fromMap(doc.data() ?? <String, dynamic>{}, id: doc.id);
-  }
-
-  factory TaskModel.fromMap(Map<String, dynamic> data, {required String id}) {
+    final data = doc.data() ?? <String, dynamic>{};
     final createdTimestamp = data['createdAt'];
     final updatedTimestamp = data['updatedAt'];
 
     return TaskModel(
-      id: id,
+      id: doc.id,
       uid: (data['uid'] ?? '').toString(),
       title: (data['title'] ?? '').toString(),
       description: (data['description'] ?? '').toString(),

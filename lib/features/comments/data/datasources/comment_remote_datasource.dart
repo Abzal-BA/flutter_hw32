@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/parsing/api_response_parser.dart';
 import '../../domain/entities/comment.dart';
 import '../models/comment_model.dart';
 
@@ -11,25 +10,13 @@ class CommentRemoteDataSource {
   final FirebaseFirestore _firestore;
 
   Stream<List<Comment>> watchComments(String taskId) {
-    // Day 37 parser factory usage: comment Firestore payloads are parsed by response type.
-    final parser = ApiResponseParserFactory.create<CommentModel>(
-      ApiResponseType.comment,
-    );
     return _firestore
         .collection('tasks')
         .doc(taskId)
         .collection('comments')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map(
-                (doc) => parser.parse(
-                  ApiResponseContext(data: doc.data(), id: doc.id),
-                ),
-              )
-              .toList(),
-        );
+        .map((snapshot) => snapshot.docs.map(CommentModel.fromDoc).toList());
   }
 
   Future<void> addComment({
