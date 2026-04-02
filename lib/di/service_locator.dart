@@ -37,7 +37,6 @@ import '../features/tasks/domain/usecases/watch_tasks_usecase.dart';
 final GetIt getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
-  // ── Firebase infrastructure ──────────────────────────────────────────────
   if (!getIt.isRegistered<FirebaseAuth>()) {
     getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
   }
@@ -61,7 +60,6 @@ Future<void> setupDependencies() async {
     getIt.registerSingleton<SharedPreferences>(preferences);
   }
 
-  // ── Notifications ─────────────────────────────────────────────────────────
   if (!getIt.isRegistered<NotificationSettingsStore>()) {
     getIt.registerLazySingleton<NotificationSettingsStore>(
         () => NotificationSettingsStore(getIt<SharedPreferences>()));
@@ -78,12 +76,10 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Core ──────────────────────────────────────────────────────────────────
   if (!getIt.isRegistered<AppErrorHandler>()) {
     getIt.registerLazySingleton<AppErrorHandler>(AppErrorHandler.new);
   }
 
-  // ── Auth feature ──────────────────────────────────────────────────────────
   if (!getIt.isRegistered<AuthRemoteDataSource>()) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSource(
@@ -135,7 +131,6 @@ Future<void> setupDependencies() async {
     );
   }
 
-  // ── Tasks feature ─────────────────────────────────────────────────────────
   if (!getIt.isRegistered<TaskRemoteDataSource>()) {
     getIt.registerLazySingleton<TaskRemoteDataSource>(
         () => TaskRemoteDataSource(getIt<FirebaseFirestore>()));
@@ -165,7 +160,6 @@ Future<void> setupDependencies() async {
         () => DeleteTaskUseCase(getIt<ITaskRepository>()));
   }
 
-  // ── Comments feature ──────────────────────────────────────────────────────
   if (!getIt.isRegistered<CommentRemoteDataSource>()) {
     getIt.registerLazySingleton<CommentRemoteDataSource>(
         () => CommentRemoteDataSource(getIt<FirebaseFirestore>()));
