@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,8 +18,32 @@ import '../state/tasks_state.dart';
 import 'task_details_screen.dart';
 import '../../../auth/presentation/pages/user_settings_page.dart';
 
+class TaskPageKeys {
+  const TaskPageKeys._();
+
+  static const loadingIndicator = ValueKey<String>('taskPage_loading');
+  static const emptyState = ValueKey<String>('taskPage_empty');
+  static const errorText = ValueKey<String>('taskPage_errorText');
+  static const retryButton = ValueKey<String>('taskPage_retryButton');
+  static const listView = ValueKey<String>('taskPage_listView');
+  static const addFab = ValueKey<String>('taskPage_addFab');
+  static const titleField = ValueKey<String>('taskPage_titleField');
+  static const submitButton = ValueKey<String>('taskPage_submitButton');
+
+  static Key taskTile(String taskId) => ValueKey<String>('taskTile_$taskId');
+}
+
 class TaskPage extends StatefulWidget {
-  const TaskPage({super.key});
+  const TaskPage({
+    super.key,
+    this.tasksController,
+    this.notificationsEnabledListenable,
+    this.taskDetailsPageBuilder,
+  });
+
+  final TasksController? tasksController;
+  final ValueListenable<bool>? notificationsEnabledListenable;
+  final Widget Function(String taskId)? taskDetailsPageBuilder;
 
   @override
   State<TaskPage> createState() => _TaskPageState();
@@ -27,8 +52,8 @@ class TaskPage extends StatefulWidget {
 class _TaskPageState extends State<TaskPage> {
   final _searchTagController = TextEditingController();
   late final TasksController _tasksController;
-  final NotificationService _notificationService =
-      getIt<NotificationService>();
+  late final ValueListenable<bool> _notificationsEnabledListenable;
+  late final bool _ownsTasksController;
 
   Future<void> _signOut() async {
     Navigator.of(context).pop();
@@ -52,21 +77,28 @@ class _TaskPageState extends State<TaskPage> {
   @override
   void initState() {
     super.initState();
-    _tasksController = TasksController(
-      watchTasksUseCase: getIt<WatchTasksUseCase>(),
-      addTaskUseCase: getIt<AddTaskUseCase>(),
-      updateTaskUseCase: getIt<UpdateTaskUseCase>(),
-      deleteTaskUseCase: getIt<DeleteTaskUseCase>(),
-      authRepository: getIt<IAuthRepository>(),
-      errorHandler: getIt<AppErrorHandler>(),
-    );
+    _tasksController = widget.tasksController ??
+        TasksController(
+          watchTasksUseCase: getIt<WatchTasksUseCase>(),
+          addTaskUseCase: getIt<AddTaskUseCase>(),
+          updateTaskUseCase: getIt<UpdateTaskUseCase>(),
+          deleteTaskUseCase: getIt<DeleteTaskUseCase>(),
+          authRepository: getIt<IAuthRepository>(),
+          errorHandler: getIt<AppErrorHandler>(),
+        );
+    _ownsTasksController = widget.tasksController == null;
+    _notificationsEnabledListenable =
+        widget.notificationsEnabledListenable ??
+            getIt<NotificationService>().notificationsEnabled;
     _tasksController.loadTasks();
   }
 
   @override
   void dispose() {
     _searchTagController.dispose();
-    _tasksController.dispose();
+    if (_ownsTasksController) {
+      _tasksController.dispose();
+    }
     super.dispose();
   }
 
@@ -169,7 +201,7 @@ class _TaskPageState extends State<TaskPage> {
         title: const Text('Task Page'),
         actions: [
           ValueListenableBuilder<bool>(
-            valueListenable: _notificationService.notificationsEnabled,
+            valueListenable: _notificationsEnabledListenable,
             builder: (context, enabled, _) {
               return IconButton(
                 onPressed: _openNotificationSettings,
@@ -291,6 +323,7 @@ class _TaskPageState extends State<TaskPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        key: TaskPageKeys.addFab,
         onPressed: _openCreateTaskDialog,
         icon: const Icon(Icons.add),
         label: const Text('Add task'),
@@ -300,7 +333,9 @@ class _TaskPageState extends State<TaskPage> {
 
   Widget _buildTaskList(TasksState tasksState) {
     if (tasksState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(key: TaskPageKeys.loadingIndicator),
+      );
     }
 
     if (tasksState.errorMessage != null && tasksState.items.isEmpty) {
@@ -309,12 +344,14 @@ class _TaskPageState extends State<TaskPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
+              key: TaskPageKeys.errorText,
               tasksState.errorMessage!,
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.red.shade700),
             ),
             const SizedBox(height: 10),
             FilledButton(
+              key: TaskPageKeys.retryButton,
               onPressed: _tasksController.loadTasks,
               child: const Text('Retry'),
             ),
@@ -325,11 +362,15 @@ class _TaskPageState extends State<TaskPage> {
 
     if (tasksState.items.isEmpty) {
       return const Center(
-        child: Text('No tasks yet. Add your first task.'),
+        child: Text(
+          'No tasks yet. Add your first task.',
+          key: TaskPageKeys.emptyState,
+        ),
       );
     }
 
     return ListView.builder(
+      key: TaskPageKeys.listView,
       itemCount:
           tasksState.items.length + (tasksState.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
@@ -350,10 +391,12 @@ class _TaskPageState extends State<TaskPage> {
         final task = tasksState.items[index];
         return Card(
           child: ListTile(
+            key: TaskPageKeys.taskTile(task.id),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
+                  builder: (_) => widget.taskDetailsPageBuilder
+                          ?.call(task.id) ??
                       TaskDetailsScreen(taskId: task.id),
                 ),
               );
@@ -513,6 +556,7 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
+                key: TaskPageKeys.titleField,
                 controller: _titleController,
                 decoration: const InputDecoration(
                   labelText: 'Title',
@@ -597,6 +641,7 @@ class _TaskEditorDialogState extends State<_TaskEditorDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
+          key: TaskPageKeys.submitButton,
           onPressed: _submitting ? null : _submit,
           child: _submitting
               ? const SizedBox(
