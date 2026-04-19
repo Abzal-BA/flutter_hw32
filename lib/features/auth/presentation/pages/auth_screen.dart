@@ -40,9 +40,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _forgotPassword() async {
-    await context
-        .read<AuthController>()
-        .sendPasswordReset(_emailController.text);
+    await context.read<AuthController>().sendPasswordReset(
+      _emailController.text,
+    );
   }
 
   Future<void> _signInWithGoogle() async {
@@ -62,14 +62,14 @@ class _AuthScreenState extends State<AuthScreen> {
         if (state.infoMessage != null && state.infoMessage!.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.infoMessage!)));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.infoMessage!)));
           });
         }
 
         return Scaffold(
-          appBar:
-              AppBar(title: Text(state.isLoginMode ? 'Login' : 'Register')),
+          appBar: AppBar(title: Text(state.isLoginMode ? 'Login' : 'Register')),
           body: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -82,6 +82,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     children: [
                       if (!state.isLoginMode)
                         TextFormField(
+                          key: const ValueKey<String>('displayNameField'),
                           controller: _nameController,
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
@@ -98,6 +99,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       if (!state.isLoginMode) const SizedBox(height: 12),
                       TextFormField(
+                        key: const ValueKey<String>('emailField'),
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
@@ -115,6 +117,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
+                        key: const ValueKey<String>('passwordField'),
                         controller: _passwordController,
                         obscureText: true,
                         decoration: const InputDecoration(
@@ -139,28 +142,28 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           child: Text(
                             state.errorMessage!,
-                            style:
-                                TextStyle(color: Colors.red.shade700),
+                            style: TextStyle(color: Colors.red.shade700),
                           ),
                         ),
                       if (state.errorMessage != null)
                         const SizedBox(height: 12),
                       ElevatedButton(
+                        key: const ValueKey<String>('submitAuthButton'),
                         onPressed: state.isBusy ? null : _submit,
                         child: state.isBusy
                             ? const SizedBox(
                                 height: 18,
                                 width: 18,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2),
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Text(
-                                state.isLoginMode
-                                    ? 'Login'
-                                    : 'Create account',
+                                state.isLoginMode ? 'Login' : 'Create account',
                               ),
                       ),
                       TextButton(
+                        key: const ValueKey<String>('toggleAuthModeButton'),
                         onPressed: state.isBusy
                             ? null
                             : authController.toggleAuthMode,
@@ -171,13 +174,13 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed:
-                            state.isBusy ? null : _forgotPassword,
+                        key: const ValueKey<String>('forgotPasswordButton'),
+                        onPressed: state.isBusy ? null : _forgotPassword,
                         child: const Text('Forgot password?'),
                       ),
                       OutlinedButton.icon(
-                        onPressed:
-                            state.isBusy ? null : _signInWithGoogle,
+                        key: const ValueKey<String>('googleSignInButton'),
+                        onPressed: state.isBusy ? null : _signInWithGoogle,
                         icon: const Icon(Icons.login),
                         label: const Text('Continue with Google'),
                       ),

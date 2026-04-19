@@ -41,7 +41,9 @@ class NotificationPayload {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
         return const NotificationPayload(
-            source: 'local', data: <String, dynamic>{});
+          source: 'local',
+          data: <String, dynamic>{},
+        );
       }
 
       return NotificationPayload(
@@ -54,7 +56,9 @@ class NotificationPayload {
       );
     } catch (_) {
       return const NotificationPayload(
-          source: 'local', data: <String, dynamic>{});
+        source: 'local',
+        data: <String, dynamic>{},
+      );
     }
   }
 

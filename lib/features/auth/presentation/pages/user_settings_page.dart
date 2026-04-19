@@ -29,9 +29,9 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   }
 
   Future<void> _saveDisplayName() async {
-    await context
-        .read<AuthController>()
-        .updateDisplayName(_nameController.text);
+    await context.read<AuthController>().updateDisplayName(
+      _nameController.text,
+    );
   }
 
   @override
@@ -56,10 +56,9 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
               Align(
                 child: CircleAvatar(
                   radius: 42,
-                  backgroundImage:
-                      photoUrl != null && photoUrl.isNotEmpty
-                          ? NetworkImage(photoUrl)
-                          : null,
+                  backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                      ? NetworkImage(photoUrl)
+                      : null,
                   child: photoUrl == null || photoUrl.isEmpty
                       ? const Icon(Icons.person, size: 42)
                       : null,

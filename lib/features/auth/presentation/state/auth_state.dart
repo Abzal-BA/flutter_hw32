@@ -39,13 +39,13 @@ class AuthState {
       errorMessage: clearError
           ? null
           : (identical(errorMessage, _unset)
-              ? this.errorMessage
-              : errorMessage as String?),
+                ? this.errorMessage
+                : errorMessage as String?),
       infoMessage: clearInfo
           ? null
           : (identical(infoMessage, _unset)
-              ? this.infoMessage
-              : infoMessage as String?),
+                ? this.infoMessage
+                : infoMessage as String?),
     );
   }
 }

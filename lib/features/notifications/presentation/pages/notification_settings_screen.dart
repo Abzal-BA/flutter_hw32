@@ -13,8 +13,7 @@ class NotificationSettingsScreen extends StatefulWidget {
 
 class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
-  final NotificationService _notificationService =
-      getIt<NotificationService>();
+  final NotificationService _notificationService = getIt<NotificationService>();
   final TextEditingController _itemIdController = TextEditingController();
 
   @override
@@ -31,9 +30,9 @@ class _NotificationSettingsScreenState
     final itemId = _itemIdController.text.trim();
     if (itemId.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter item id first.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter item id first.')));
       return;
     }
 
@@ -53,8 +52,7 @@ class _NotificationSettingsScreenState
               return SwitchListTile(
                 value: enabled,
                 title: const Text('Enable local notification display'),
-                subtitle:
-                    const Text('This flag is stored locally on device.'),
+                subtitle: const Text('This flag is stored locally on device.'),
                 onChanged: _notificationService.setNotificationsEnabled,
               );
             },
@@ -70,7 +68,7 @@ class _NotificationSettingsScreenState
             controller: _itemIdController,
             decoration: const InputDecoration(
               labelText: 'Deep link item id',
-              hintText: 'Paste Firestore task document id',
+              hintText: 'Enter any item identifier',
               border: OutlineInputBorder(),
             ),
           ),

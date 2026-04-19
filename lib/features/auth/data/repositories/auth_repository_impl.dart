@@ -30,20 +30,18 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<void> signInWithEmail({
     required String email,
     required String password,
-  }) =>
-      _dataSource.signInWithEmail(email: email, password: password);
+  }) => _dataSource.signInWithEmail(email: email, password: password);
 
   @override
   Future<void> registerWithEmail({
     required String email,
     required String password,
     String? displayName,
-  }) =>
-      _dataSource.registerWithEmail(
-        email: email,
-        password: password,
-        displayName: displayName,
-      );
+  }) => _dataSource.registerWithEmail(
+    email: email,
+    password: password,
+    displayName: displayName,
+  );
 
   @override
   Future<void> sendPasswordReset(String email) =>

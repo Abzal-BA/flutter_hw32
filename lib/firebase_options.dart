@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -51,7 +52,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '462650830305',
     projectId: 'fpractice-7df89',
     storageBucket: 'fpractice-7df89.firebasestorage.app',
-    iosClientId: '462650830305-g4qv3o57j3l81fjvp5e2m72eh9sneq1h.apps.googleusercontent.com',
+    iosClientId:
+        '462650830305-g4qv3o57j3l81fjvp5e2m72eh9sneq1h.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterHw32',
   );
 
@@ -61,7 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '462650830305',
     projectId: 'fpractice-7df89',
     storageBucket: 'fpractice-7df89.firebasestorage.app',
-    iosClientId: '462650830305-g4qv3o57j3l81fjvp5e2m72eh9sneq1h.apps.googleusercontent.com',
+    iosClientId:
+        '462650830305-g4qv3o57j3l81fjvp5e2m72eh9sneq1h.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterHw32',
   );
 
@@ -74,5 +77,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'fpractice-7df89.firebasestorage.app',
     measurementId: 'G-1EN23DZ1DR',
   );
-
 }

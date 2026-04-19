@@ -17,54 +17,74 @@ import '../features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import '../features/auth/domain/usecases/sign_out_usecase.dart';
 import '../features/auth/domain/usecases/update_display_name_usecase.dart';
 import '../features/auth/presentation/controller/auth_controller.dart';
-import '../features/comments/data/datasources/comment_remote_datasource.dart';
-import '../features/comments/data/repositories/comment_repository_impl.dart';
-import '../features/comments/domain/repositories/i_comment_repository.dart';
-import '../features/comments/domain/usecases/add_comment_usecase.dart';
-import '../features/comments/domain/usecases/delete_comment_usecase.dart';
-import '../features/comments/domain/usecases/watch_comments_usecase.dart';
+import '../features/items/data/api_client.dart';
+import '../features/items/data/fake_server_api_client.dart';
+import '../features/items/data/in_memory_items_db.dart';
+import '../features/items/data/item_repository_impl.dart';
+import '../features/items/data/items_db.dart';
+import '../features/items/domain/i_item_repository.dart';
+import '../features/items/presentation/controller/items_controller.dart';
 import '../features/notifications/notification_service.dart';
 import '../features/notifications/notification_settings_store.dart';
-import '../features/tasks/data/datasources/task_remote_datasource.dart';
-import '../features/tasks/data/repositories/task_repository_impl.dart';
-import '../features/tasks/domain/repositories/i_task_repository.dart';
-import '../features/tasks/domain/usecases/add_task_usecase.dart';
-import '../features/tasks/domain/usecases/delete_task_usecase.dart';
-import '../features/tasks/domain/usecases/update_task_usecase.dart';
-import '../features/tasks/domain/usecases/watch_task_usecase.dart';
-import '../features/tasks/domain/usecases/watch_tasks_usecase.dart';
 
 final GetIt getIt = GetIt.instance;
 
-Future<void> setupDependencies() async {
-  if (!getIt.isRegistered<FirebaseAuth>()) {
+class DependencyOverrides {
+  const DependencyOverrides({
+    this.authRepository,
+    this.apiClient,
+    this.itemsDb,
+    this.itemRepository,
+  });
+
+  final IAuthRepository? authRepository;
+  final ApiClient? apiClient;
+  final ItemsDb? itemsDb;
+  final IItemRepository? itemRepository;
+}
+
+Future<void> resetDependencies() async {
+  await getIt.reset();
+}
+
+Future<void> setupDependencies({
+  DependencyOverrides overrides = const DependencyOverrides(),
+  bool registerNotifications = true,
+}) async {
+  if (!getIt.isRegistered<FirebaseAuth>() && overrides.authRepository == null) {
     getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
   }
-  if (!getIt.isRegistered<FirebaseFirestore>()) {
+  if (!getIt.isRegistered<FirebaseFirestore>() && registerNotifications) {
     getIt.registerLazySingleton<FirebaseFirestore>(
-        () => FirebaseFirestore.instance);
+      () => FirebaseFirestore.instance,
+    );
   }
-  if (!getIt.isRegistered<GoogleSignIn>()) {
+  if (!getIt.isRegistered<GoogleSignIn>() && overrides.authRepository == null) {
     getIt.registerLazySingleton<GoogleSignIn>(GoogleSignIn.new);
   }
-  if (!getIt.isRegistered<FirebaseMessaging>()) {
+  if (!getIt.isRegistered<FirebaseMessaging>() && registerNotifications) {
     getIt.registerLazySingleton<FirebaseMessaging>(
-        () => FirebaseMessaging.instance);
+      () => FirebaseMessaging.instance,
+    );
   }
-  if (!getIt.isRegistered<FlutterLocalNotificationsPlugin>()) {
+  if (!getIt.isRegistered<FlutterLocalNotificationsPlugin>() &&
+      registerNotifications) {
     getIt.registerLazySingleton<FlutterLocalNotificationsPlugin>(
-        FlutterLocalNotificationsPlugin.new);
+      FlutterLocalNotificationsPlugin.new,
+    );
   }
-  if (!getIt.isRegistered<SharedPreferences>()) {
+  if (!getIt.isRegistered<SharedPreferences>() && registerNotifications) {
     final preferences = await SharedPreferences.getInstance();
     getIt.registerSingleton<SharedPreferences>(preferences);
   }
 
-  if (!getIt.isRegistered<NotificationSettingsStore>()) {
+  if (!getIt.isRegistered<NotificationSettingsStore>() &&
+      registerNotifications) {
     getIt.registerLazySingleton<NotificationSettingsStore>(
-        () => NotificationSettingsStore(getIt<SharedPreferences>()));
+      () => NotificationSettingsStore(getIt<SharedPreferences>()),
+    );
   }
-  if (!getIt.isRegistered<NotificationService>()) {
+  if (!getIt.isRegistered<NotificationService>() && registerNotifications) {
     getIt.registerLazySingleton<NotificationService>(
       () => NotificationService(
         messaging: getIt<FirebaseMessaging>(),
@@ -80,7 +100,12 @@ Future<void> setupDependencies() async {
     getIt.registerLazySingleton<AppErrorHandler>(AppErrorHandler.new);
   }
 
-  if (!getIt.isRegistered<AuthRemoteDataSource>()) {
+  if (overrides.authRepository != null &&
+      !getIt.isRegistered<IAuthRepository>()) {
+    getIt.registerSingleton<IAuthRepository>(overrides.authRepository!);
+  }
+  if (!getIt.isRegistered<AuthRemoteDataSource>() &&
+      overrides.authRepository == null) {
     getIt.registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSource(
         auth: getIt<FirebaseAuth>(),
@@ -90,31 +115,66 @@ Future<void> setupDependencies() async {
   }
   if (!getIt.isRegistered<IAuthRepository>()) {
     getIt.registerLazySingleton<IAuthRepository>(
-        () => AuthRepositoryImpl(getIt<AuthRemoteDataSource>()));
+      () => AuthRepositoryImpl(getIt<AuthRemoteDataSource>()),
+    );
   }
+
+  if (overrides.apiClient != null && !getIt.isRegistered<ApiClient>()) {
+    getIt.registerSingleton<ApiClient>(overrides.apiClient!);
+  }
+  if (!getIt.isRegistered<ApiClient>()) {
+    getIt.registerLazySingleton<ApiClient>(FakeServerApiClient.new);
+  }
+
+  if (overrides.itemsDb != null && !getIt.isRegistered<ItemsDb>()) {
+    getIt.registerSingleton<ItemsDb>(overrides.itemsDb!);
+  }
+  if (!getIt.isRegistered<ItemsDb>()) {
+    getIt.registerLazySingleton<ItemsDb>(InMemoryItemsDb.new);
+  }
+
+  if (overrides.itemRepository != null &&
+      !getIt.isRegistered<IItemRepository>()) {
+    getIt.registerSingleton<IItemRepository>(overrides.itemRepository!);
+  }
+  if (!getIt.isRegistered<IItemRepository>()) {
+    getIt.registerLazySingleton<IItemRepository>(
+      () => ItemRepositoryImpl(
+        apiClient: getIt<ApiClient>(),
+        db: getIt<ItemsDb>(),
+      ),
+    );
+  }
+
   if (!getIt.isRegistered<SignInWithEmailUseCase>()) {
     getIt.registerLazySingleton<SignInWithEmailUseCase>(
-        () => SignInWithEmailUseCase(getIt<IAuthRepository>()));
+      () => SignInWithEmailUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<RegisterWithEmailUseCase>()) {
     getIt.registerLazySingleton<RegisterWithEmailUseCase>(
-        () => RegisterWithEmailUseCase(getIt<IAuthRepository>()));
+      () => RegisterWithEmailUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<SignOutUseCase>()) {
     getIt.registerLazySingleton<SignOutUseCase>(
-        () => SignOutUseCase(getIt<IAuthRepository>()));
+      () => SignOutUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<SendPasswordResetUseCase>()) {
     getIt.registerLazySingleton<SendPasswordResetUseCase>(
-        () => SendPasswordResetUseCase(getIt<IAuthRepository>()));
+      () => SendPasswordResetUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<SignInWithGoogleUseCase>()) {
     getIt.registerLazySingleton<SignInWithGoogleUseCase>(
-        () => SignInWithGoogleUseCase(getIt<IAuthRepository>()));
+      () => SignInWithGoogleUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<UpdateDisplayNameUseCase>()) {
     getIt.registerLazySingleton<UpdateDisplayNameUseCase>(
-        () => UpdateDisplayNameUseCase(getIt<IAuthRepository>()));
+      () => UpdateDisplayNameUseCase(getIt<IAuthRepository>()),
+    );
   }
   if (!getIt.isRegistered<AuthController>()) {
     getIt.registerFactory<AuthController>(
@@ -130,54 +190,13 @@ Future<void> setupDependencies() async {
       ),
     );
   }
-
-  if (!getIt.isRegistered<TaskRemoteDataSource>()) {
-    getIt.registerLazySingleton<TaskRemoteDataSource>(
-        () => TaskRemoteDataSource(getIt<FirebaseFirestore>()));
-  }
-  if (!getIt.isRegistered<ITaskRepository>()) {
-    getIt.registerLazySingleton<ITaskRepository>(
-        () => TaskRepositoryImpl(getIt<TaskRemoteDataSource>()));
-  }
-  if (!getIt.isRegistered<WatchTasksUseCase>()) {
-    getIt.registerLazySingleton<WatchTasksUseCase>(
-        () => WatchTasksUseCase(getIt<ITaskRepository>()));
-  }
-  if (!getIt.isRegistered<WatchTaskUseCase>()) {
-    getIt.registerLazySingleton<WatchTaskUseCase>(
-        () => WatchTaskUseCase(getIt<ITaskRepository>()));
-  }
-  if (!getIt.isRegistered<AddTaskUseCase>()) {
-    getIt.registerLazySingleton<AddTaskUseCase>(
-        () => AddTaskUseCase(getIt<ITaskRepository>()));
-  }
-  if (!getIt.isRegistered<UpdateTaskUseCase>()) {
-    getIt.registerLazySingleton<UpdateTaskUseCase>(
-        () => UpdateTaskUseCase(getIt<ITaskRepository>()));
-  }
-  if (!getIt.isRegistered<DeleteTaskUseCase>()) {
-    getIt.registerLazySingleton<DeleteTaskUseCase>(
-        () => DeleteTaskUseCase(getIt<ITaskRepository>()));
-  }
-
-  if (!getIt.isRegistered<CommentRemoteDataSource>()) {
-    getIt.registerLazySingleton<CommentRemoteDataSource>(
-        () => CommentRemoteDataSource(getIt<FirebaseFirestore>()));
-  }
-  if (!getIt.isRegistered<ICommentRepository>()) {
-    getIt.registerLazySingleton<ICommentRepository>(
-        () => CommentRepositoryImpl(getIt<CommentRemoteDataSource>()));
-  }
-  if (!getIt.isRegistered<WatchCommentsUseCase>()) {
-    getIt.registerLazySingleton<WatchCommentsUseCase>(
-        () => WatchCommentsUseCase(getIt<ICommentRepository>()));
-  }
-  if (!getIt.isRegistered<AddCommentUseCase>()) {
-    getIt.registerLazySingleton<AddCommentUseCase>(
-        () => AddCommentUseCase(getIt<ICommentRepository>()));
-  }
-  if (!getIt.isRegistered<DeleteCommentUseCase>()) {
-    getIt.registerLazySingleton<DeleteCommentUseCase>(
-        () => DeleteCommentUseCase(getIt<ICommentRepository>()));
+  if (!getIt.isRegistered<ItemsController>()) {
+    getIt.registerFactory<ItemsController>(
+      () => ItemsController(
+        itemRepository: getIt<IItemRepository>(),
+        authRepository: getIt<IAuthRepository>(),
+        errorHandler: getIt<AppErrorHandler>(),
+      ),
+    );
   }
 }

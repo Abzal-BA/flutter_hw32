@@ -23,25 +23,26 @@ class AuthController extends ChangeNotifier {
     required SignInWithGoogleUseCase signInWithGoogleUseCase,
     required UpdateDisplayNameUseCase updateDisplayNameUseCase,
     required AppErrorHandler errorHandler,
-  })  : _authRepository = authRepository,
-        _signInWithEmailUseCase = signInWithEmailUseCase,
-        _registerWithEmailUseCase = registerWithEmailUseCase,
-        _signOutUseCase = signOutUseCase,
-        _sendPasswordResetUseCase = sendPasswordResetUseCase,
-        _signInWithGoogleUseCase = signInWithGoogleUseCase,
-        _updateDisplayNameUseCase = updateDisplayNameUseCase,
-        _errorHandler = errorHandler,
-        _state = AuthState(
-          user: authRepository.currentUser,
-          isAuthReady: true,
-          isBusy: false,
-          isLoginMode: true,
-        ) {
+  }) : _authRepository = authRepository,
+       _signInWithEmailUseCase = signInWithEmailUseCase,
+       _registerWithEmailUseCase = registerWithEmailUseCase,
+       _signOutUseCase = signOutUseCase,
+       _sendPasswordResetUseCase = sendPasswordResetUseCase,
+       _signInWithGoogleUseCase = signInWithGoogleUseCase,
+       _updateDisplayNameUseCase = updateDisplayNameUseCase,
+       _errorHandler = errorHandler,
+       _state = AuthState(
+         user: authRepository.currentUser,
+         isAuthReady: true,
+         isBusy: false,
+         isLoginMode: true,
+       ) {
     _stateController = StreamController<AuthState>.broadcast(
       onListen: () => _stateController.add(_state),
     );
-    _authSubscription =
-        _authRepository.authStateChanges.listen(_handleAuthChanged);
+    _authSubscription = _authRepository.authStateChanges.listen(
+      _handleAuthChanged,
+    );
   }
 
   final IAuthRepository _authRepository;
@@ -69,20 +70,24 @@ class AuthController extends ChangeNotifier {
   }
 
   void _handleAuthChanged(AuthUser? user) {
-    _emit(state.copyWith(
-      user: user,
-      isAuthReady: true,
-      isBusy: false,
-      clearError: true,
-    ));
+    _emit(
+      state.copyWith(
+        user: user,
+        isAuthReady: true,
+        isBusy: false,
+        clearError: true,
+      ),
+    );
   }
 
   void toggleAuthMode() {
-    _emit(state.copyWith(
-      isLoginMode: !state.isLoginMode,
-      clearError: true,
-      clearInfo: true,
-    ));
+    _emit(
+      state.copyWith(
+        isLoginMode: !state.isLoginMode,
+        clearError: true,
+        clearInfo: true,
+      ),
+    );
   }
 
   Future<void> submitWithEmailAndPassword({
@@ -94,8 +99,9 @@ class AuthController extends ChangeNotifier {
 
     try {
       if (state.isLoginMode) {
-        await _signInWithEmailUseCase
-            .call(SignInWithEmailParams(email: email, password: password));
+        await _signInWithEmailUseCase.call(
+          SignInWithEmailParams(email: email, password: password),
+        );
       } else {
         await _registerWithEmailUseCase.call(
           RegisterWithEmailParams(
@@ -106,12 +112,14 @@ class AuthController extends ChangeNotifier {
         );
       }
     } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Unexpected error. Please try again.',
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Unexpected error. Please try again.',
+          ),
         ),
-      ));
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }
@@ -120,9 +128,11 @@ class AuthController extends ChangeNotifier {
   Future<void> sendPasswordReset(String email) async {
     final safeEmail = email.trim();
     if (safeEmail.isEmpty) {
-      _emit(state.copyWith(
-        errorMessage: 'Enter your email first to reset password.',
-      ));
+      _emit(
+        state.copyWith(
+          errorMessage: 'Enter your email first to reset password.',
+        ),
+      );
       return;
     }
 
@@ -130,16 +140,18 @@ class AuthController extends ChangeNotifier {
 
     try {
       await _sendPasswordResetUseCase.call(safeEmail);
-      _emit(state.copyWith(
-        infoMessage: 'Password reset email sent to $safeEmail',
-      ));
+      _emit(
+        state.copyWith(infoMessage: 'Password reset email sent to $safeEmail'),
+      );
     } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Password reset failed. Please try again.',
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Password reset failed. Please try again.',
+          ),
         ),
-      ));
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }
@@ -151,12 +163,14 @@ class AuthController extends ChangeNotifier {
     try {
       await _signInWithGoogleUseCase.call();
     } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Google sign-in failed. Check Firebase configuration.',
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Google sign-in failed. Check Firebase configuration.',
+          ),
         ),
-      ));
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }
@@ -165,9 +179,11 @@ class AuthController extends ChangeNotifier {
   Future<void> updateDisplayName(String displayName) async {
     final user = _authRepository.currentUser;
     if (user == null) {
-      _emit(state.copyWith(
-        errorMessage: 'You must be signed in to update profile.',
-      ));
+      _emit(
+        state.copyWith(
+          errorMessage: 'You must be signed in to update profile.',
+        ),
+      );
       return;
     }
 
@@ -181,17 +197,21 @@ class AuthController extends ChangeNotifier {
 
     try {
       await _updateDisplayNameUseCase.call(safeName);
-      _emit(state.copyWith(
-        user: _authRepository.currentUser,
-        infoMessage: 'Profile updated successfully.',
-      ));
-    } catch (error) {
-      _emit(state.copyWith(
-        errorMessage: _errorHandler.toMessage(
-          error,
-          fallback: 'Failed to update profile.',
+      _emit(
+        state.copyWith(
+          user: _authRepository.currentUser,
+          infoMessage: 'Profile updated successfully.',
         ),
-      ));
+      );
+    } catch (error) {
+      _emit(
+        state.copyWith(
+          errorMessage: _errorHandler.toMessage(
+            error,
+            fallback: 'Failed to update profile.',
+          ),
+        ),
+      );
     } finally {
       _emit(state.copyWith(isBusy: false));
     }

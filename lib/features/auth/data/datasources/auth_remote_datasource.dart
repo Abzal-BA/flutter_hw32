@@ -8,8 +8,8 @@ class AuthRemoteDataSource {
   const AuthRemoteDataSource({
     required FirebaseAuth auth,
     required GoogleSignIn googleSignIn,
-  })  : _auth = auth,
-        _googleSignIn = googleSignIn;
+  }) : _auth = auth,
+       _googleSignIn = googleSignIn;
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
@@ -21,8 +21,7 @@ class AuthRemoteDataSource {
   Future<void> signInWithEmail({
     required String email,
     required String password,
-  }) =>
-      _auth.signInWithEmailAndPassword(email: email, password: password);
+  }) => _auth.signInWithEmailAndPassword(email: email, password: password);
 
   Future<void> registerWithEmail({
     required String email,

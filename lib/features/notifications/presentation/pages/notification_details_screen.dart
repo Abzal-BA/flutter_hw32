@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../tasks/presentation/pages/task_details_screen.dart';
 import '../../notification_payload.dart';
 
 class NotificationDetailsScreen extends StatelessWidget {
@@ -33,20 +32,6 @@ class NotificationDetailsScreen extends StatelessWidget {
                   subtitle: Text(entry.value.toString()),
                 ),
               ),
-            ),
-          if (payload.itemId != null) const SizedBox(height: 16),
-          if (payload.itemId != null)
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        TaskDetailsScreen(taskId: payload.itemId!),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.open_in_new),
-              label: Text('Open item ${payload.itemId}'),
             ),
         ],
       ),

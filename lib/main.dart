@@ -7,9 +7,10 @@ import 'package:provider/provider.dart';
 import 'di/service_locator.dart';
 import 'features/auth/presentation/controller/auth_controller.dart';
 import 'features/auth/presentation/pages/auth_screen.dart';
+import 'features/auth/presentation/pages/home_screen.dart';
 import 'features/auth/presentation/state/auth_state.dart';
+import 'features/items/presentation/items_scope.dart';
 import 'features/notifications/notification_service.dart';
-import 'features/tasks/presentation/pages/task_page.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -61,7 +62,7 @@ class _MainAppState extends State<MainApp> {
     return MaterialApp(
       navigatorKey: getIt<NotificationService>().navigatorKey,
       debugShowCheckedModeBanner: false,
-      title: 'Day 34 Notifications HW',
+      title: 'Flutter HW32',
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
       home: const AuthGate(),
     );
@@ -87,7 +88,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (state.isAuthenticated) {
-          return const TaskPage();
+          return const ItemsScope(child: HomeScreen());
         }
 
         return const AuthScreen();

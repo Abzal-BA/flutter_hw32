@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import '../tasks/presentation/pages/task_details_screen.dart';
 import 'notification_payload.dart';
 import 'notification_settings_store.dart';
 import 'presentation/pages/notification_details_screen.dart';
@@ -26,11 +25,11 @@ class NotificationService {
     required FirebaseAuth auth,
     required FirebaseFirestore firestore,
     required NotificationSettingsStore settingsStore,
-  })  : _messaging = messaging,
-        _localNotifications = localNotifications,
-        _auth = auth,
-        _firestore = firestore,
-        _settingsStore = settingsStore {
+  }) : _messaging = messaging,
+       _localNotifications = localNotifications,
+       _auth = auth,
+       _firestore = firestore,
+       _settingsStore = settingsStore {
     notificationsEnabled.value = _settingsStore.isEnabled;
   }
 
@@ -70,8 +69,9 @@ class NotificationService {
     await _requestPermission();
     await _syncCurrentToken();
 
-    _foregroundSub =
-        FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    _foregroundSub = FirebaseMessaging.onMessage.listen(
+      _handleForegroundMessage,
+    );
     _openSub = FirebaseMessaging.onMessageOpenedApp.listen((message) {
       final payload = NotificationPayload.fromRemoteMessage(
         message,
@@ -92,8 +92,10 @@ class NotificationService {
     }
 
     _tokenRefreshSub = _messaging.onTokenRefresh.listen((token) async {
-      _log('token_refresh',
-          extra: <String, Object?>{'tokenLength': token.length});
+      _log(
+        'token_refresh',
+        extra: <String, Object?>{'tokenLength': token.length},
+      );
       await _saveTokenForCurrentUser(token);
     });
 
@@ -120,8 +122,7 @@ class NotificationService {
       ),
       onDidReceiveNotificationResponse: (details) {
         final rawPayload = details.payload;
-        final payload =
-            NotificationPayload.fromJsonString(rawPayload ?? '{}');
+        final payload = NotificationPayload.fromJsonString(rawPayload ?? '{}');
         _log('open_local', payload: payload);
         _navigateFromPayload(payload);
       },
@@ -129,7 +130,8 @@ class NotificationService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_channel);
   }
 
@@ -213,8 +215,7 @@ class NotificationService {
   Future<void> setNotificationsEnabled(bool enabled) async {
     notificationsEnabled.value = enabled;
     await _settingsStore.setEnabled(enabled);
-    _log('settings_updated',
-        extra: <String, Object?>{'enabled': enabled});
+    _log('settings_updated', extra: <String, Object?>{'enabled': enabled});
   }
 
   Future<void> _syncCurrentToken() async {
@@ -232,10 +233,7 @@ class NotificationService {
 
       _log(
         'token_sync_failed',
-        extra: <String, Object?>{
-          'code': error.code,
-          'message': error.message,
-        },
+        extra: <String, Object?>{'code': error.code, 'message': error.message},
       );
       debugPrintStack(stackTrace: stackTrace);
     } catch (error, stackTrace) {
@@ -256,15 +254,13 @@ class NotificationService {
     await _firestore.collection('users').doc(uid).set(<String, dynamic>{
       'deviceToken': token,
       'tokenUpdatedAt': FieldValue.serverTimestamp(),
-      'tokenPlatform':
-          kIsWeb ? 'web' : defaultTargetPlatform.name,
+      'tokenPlatform': kIsWeb ? 'web' : defaultTargetPlatform.name,
     }, SetOptions(merge: true));
 
-    _log('token_saved',
-        extra: <String, Object?>{
-          'uid': uid,
-          'tokenLength': token.length,
-        });
+    _log(
+      'token_saved',
+      extra: <String, Object?>{'uid': uid, 'tokenLength': token.length},
+    );
   }
 
   void _navigateFromPayload(NotificationPayload payload) {
@@ -274,19 +270,10 @@ class NotificationService {
       return;
     }
 
-    final itemId = payload.itemId;
-    if (itemId != null && itemId.isNotEmpty) {
-      nav.push(
-        MaterialPageRoute(
-            builder: (_) => TaskDetailsScreen(taskId: itemId)),
-      );
-      return;
-    }
-
     nav.push(
       MaterialPageRoute(
-          builder: (_) =>
-              NotificationDetailsScreen(payload: payload)),
+        builder: (_) => NotificationDetailsScreen(payload: payload),
+      ),
     );
   }
 
