@@ -1,0 +1,100 @@
+name: Flutter Day 43 CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Test
+        run: flutter test
+
+  build-android:
+    needs: quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [dev, prod]
+        mode: [debug, release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Prepare temporary release keystore
+        if: matrix.mode == 'release'
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/app/upload-keystore.jks \
+            -storepass ci-release-pass \
+            -keypass ci-release-pass \
+            -alias upload \
+            -dname "CN=GitHub CI, OU=Automation, O=FlutterHW32, L=Astana, ST=Astana, C=KZ" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000
+          cat > android/key.properties <<'EOF'
+          storePassword=ci-release-pass
+          keyPassword=ci-release-pass
+          keyAlias=upload
+          storeFile=upload-keystore.jks
+          EOF
+
+      - name: Resolve build number
+        if: matrix.mode == 'release'
+        run: echo "FLUTTER_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        run: |
+          TARGET="lib/main_${{ matrix.flavor }}.dart"
+          if [ "${{ matrix.mode }}" = "debug" ]; then
+            flutter build apk --debug --flavor ${{ matrix.flavor }} -t "$TARGET"
+          else
+            flutter build apk --release --flavor ${{ matrix.flavor }} -t "$TARGET" --build-number "$FLUTTER_BUILD_NUMBER"
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.flavor }}-${{ matrix.mode }}
+          path: build/app/outputs/flutter-apk/*.apk

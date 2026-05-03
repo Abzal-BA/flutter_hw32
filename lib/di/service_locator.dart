@@ -19,6 +19,9 @@ import '../features/auth/domain/usecases/update_display_name_usecase.dart';
 import '../features/auth/presentation/controller/auth_controller.dart';
 import '../features/notifications/notification_service.dart';
 import '../features/notifications/notification_settings_store.dart';
+import '../features/tasks/data/in_memory_task_repository.dart';
+import '../features/tasks/domain/i_task_repository.dart';
+import '../features/tasks/presentation/controller/tasks_controller.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -144,6 +147,18 @@ Future<void> setupDependencies({
         sendPasswordResetUseCase: getIt<SendPasswordResetUseCase>(),
         signInWithGoogleUseCase: getIt<SignInWithGoogleUseCase>(),
         updateDisplayNameUseCase: getIt<UpdateDisplayNameUseCase>(),
+        errorHandler: getIt<AppErrorHandler>(),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<ITaskRepository>()) {
+    getIt.registerLazySingleton<ITaskRepository>(InMemoryTaskRepository.new);
+  }
+  if (!getIt.isRegistered<TasksController>()) {
+    getIt.registerFactory<TasksController>(
+      () => TasksController(
+        taskRepository: getIt<ITaskRepository>(),
+        authRepository: getIt<IAuthRepository>(),
         errorHandler: getIt<AppErrorHandler>(),
       ),
     );

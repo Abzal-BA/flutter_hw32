@@ -22,6 +22,7 @@ android {
     namespace = "com.example.flutter_hw32"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    flavorDimensions += "environment"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -39,6 +40,19 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue("string", "app_name", "Flutter HW32")
+    }
+
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Flutter HW32 Dev")
+        }
+        create("prod") {
+            dimension = "environment"
+            resValue("string", "app_name", "Flutter HW32")
+        }
     }
 
     signingConfigs {
