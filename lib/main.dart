@@ -9,7 +9,6 @@ import 'features/auth/presentation/controller/auth_controller.dart';
 import 'features/auth/presentation/pages/auth_screen.dart';
 import 'features/auth/presentation/pages/home_screen.dart';
 import 'features/auth/presentation/state/auth_state.dart';
-import 'features/items/presentation/items_scope.dart';
 import 'features/notifications/notification_service.dart';
 import 'firebase_options.dart';
 
@@ -88,7 +87,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (state.isAuthenticated) {
-          return const ItemsScope(child: HomeScreen());
+          return const HomeScreen();
         }
 
         return const AuthScreen();

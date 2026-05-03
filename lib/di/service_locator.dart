@@ -17,30 +17,15 @@ import '../features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import '../features/auth/domain/usecases/sign_out_usecase.dart';
 import '../features/auth/domain/usecases/update_display_name_usecase.dart';
 import '../features/auth/presentation/controller/auth_controller.dart';
-import '../features/items/data/api_client.dart';
-import '../features/items/data/fake_server_api_client.dart';
-import '../features/items/data/in_memory_items_db.dart';
-import '../features/items/data/item_repository_impl.dart';
-import '../features/items/data/items_db.dart';
-import '../features/items/domain/i_item_repository.dart';
-import '../features/items/presentation/controller/items_controller.dart';
 import '../features/notifications/notification_service.dart';
 import '../features/notifications/notification_settings_store.dart';
 
 final GetIt getIt = GetIt.instance;
 
 class DependencyOverrides {
-  const DependencyOverrides({
-    this.authRepository,
-    this.apiClient,
-    this.itemsDb,
-    this.itemRepository,
-  });
+  const DependencyOverrides({this.authRepository});
 
   final IAuthRepository? authRepository;
-  final ApiClient? apiClient;
-  final ItemsDb? itemsDb;
-  final IItemRepository? itemRepository;
 }
 
 Future<void> resetDependencies() async {
@@ -119,33 +104,6 @@ Future<void> setupDependencies({
     );
   }
 
-  if (overrides.apiClient != null && !getIt.isRegistered<ApiClient>()) {
-    getIt.registerSingleton<ApiClient>(overrides.apiClient!);
-  }
-  if (!getIt.isRegistered<ApiClient>()) {
-    getIt.registerLazySingleton<ApiClient>(FakeServerApiClient.new);
-  }
-
-  if (overrides.itemsDb != null && !getIt.isRegistered<ItemsDb>()) {
-    getIt.registerSingleton<ItemsDb>(overrides.itemsDb!);
-  }
-  if (!getIt.isRegistered<ItemsDb>()) {
-    getIt.registerLazySingleton<ItemsDb>(InMemoryItemsDb.new);
-  }
-
-  if (overrides.itemRepository != null &&
-      !getIt.isRegistered<IItemRepository>()) {
-    getIt.registerSingleton<IItemRepository>(overrides.itemRepository!);
-  }
-  if (!getIt.isRegistered<IItemRepository>()) {
-    getIt.registerLazySingleton<IItemRepository>(
-      () => ItemRepositoryImpl(
-        apiClient: getIt<ApiClient>(),
-        db: getIt<ItemsDb>(),
-      ),
-    );
-  }
-
   if (!getIt.isRegistered<SignInWithEmailUseCase>()) {
     getIt.registerLazySingleton<SignInWithEmailUseCase>(
       () => SignInWithEmailUseCase(getIt<IAuthRepository>()),
@@ -186,15 +144,6 @@ Future<void> setupDependencies({
         sendPasswordResetUseCase: getIt<SendPasswordResetUseCase>(),
         signInWithGoogleUseCase: getIt<SignInWithGoogleUseCase>(),
         updateDisplayNameUseCase: getIt<UpdateDisplayNameUseCase>(),
-        errorHandler: getIt<AppErrorHandler>(),
-      ),
-    );
-  }
-  if (!getIt.isRegistered<ItemsController>()) {
-    getIt.registerFactory<ItemsController>(
-      () => ItemsController(
-        itemRepository: getIt<IItemRepository>(),
-        authRepository: getIt<IAuthRepository>(),
         errorHandler: getIt<AppErrorHandler>(),
       ),
     );
